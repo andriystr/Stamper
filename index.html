@@ -4,6 +4,7 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Document</title>
+	<script src="tokenizer.js"></script>
 </head>
 <body>
 	<textarea></textarea>
@@ -18,35 +19,8 @@
 		const btn = document.querySelector('button');
 
 		btn.addEventListener('click', e => {
-			if(ta.value) out.innerText = JSON.stringify(tokenizer(normalize(ta.value)), null, 2);
+			if(ta.value) out.innerText = JSON.stringify(tokenizer(ta.value), null, 2);
 		})
-
-		function normalize(text){
-			return text.replace(/['’`´ʹ]/gu, '`');
-		}
-
-		function tokenizer(text){
-			const regex = /(?<word>[\p{L}'’`´ʹ-]+)|(?<number>\p{N}+)|(?<punctuation>\p{P})|(?<space>\s+)/gu;
-			const tokens = [];
-
-			for(const match of text.matchAll(regex)){
-				const value = match[0];
-				const groups = match.groups;
-
-				let tag = '';
-				if(groups.word) tag = 'word';
-				else if(groups.number) tag = 'number';
-				else if(groups.punctuation) tag = 'punctuation';
-				else if(groups.space) tag = 'space';
-
-				tokens.push({
-					value: value,
-					tag: tag
-				})
-			}
-
-			return tokens;
-		}
 	</script>
 </body>
 </html>
