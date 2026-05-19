@@ -1,206 +1,139 @@
 
-class StringCursor {
-	#string;
-	#index;
-
-	constructor(string){
-		this.#string = string;
-		this.#index = 0;
+function normalizeChar(char) {
+	if (!char) return '';
+	
+	// Зводимо всі апострофи до одного стандарту
+	if (/['"`’‘ʼ״׳′]/u.test(char)) {
+		return "'"; 
 	}
 
-	peek(){
-		if(this.#index >= this.#string.length)
-			return '';
-		return this.#string[this.#index];
-	}
-
-	read(){
-		if(this.#index >= this.#string.length)
-			return '';
-		return this.#string[this.#index++];
-	}
-
-	test(regex){
-		return regex.test(this.peek());
-	}
-
-	eof(){
-		return this.#index >= this.#string.length;
-	}
+	return char;
 }
 
+function diffText(textA, textB){
+	// РЕГУЛЯРНИЙ ВИРАЗ ДЛЯ ПРОБІЛІВ:
+	// \s+ знаходить будь-яку кількість пробілів, табуляцій чи переносів, що йдуть підряд,
+	// та замінює їх на один звичайний пробіл " ".
+	const cleanA = textA.replace(/\s+/gu, ' ');
+	const cleanB = textB.replace(/\s+/gu, ' ');
 
-function scanner(text){
-	const cursor = new StringCursor(text);
-	const stack = [];
-	const tokens = [];
+	// Створюємо масиви для порівняння вже на основі очищених від зайвих пробілів рядків
+	const a = Array.from(cleanA).map(normalizeChar);
+	const b = Array.from(cleanB).map(normalizeChar);
 
-	while(!cursor.eof()){
-		if(cursor.test(/\p{Z}/u)){
-			while(cursor.test(/\p{Z}/u))
-				stack.push(cursor.read());
+	const n = a.length;
+	const m = b.length;
+	const maxD = n + m;
+	
+	const v = new Array(2 * maxD + 1);
+	v[maxD + 1] = 0;
+	const history = [];
+
+	let x, y;
+	let found = false;
+
+	// Крок 1: Пошук найкоротшого шляху редагування
+	for (let d = 0; d <= maxD; d++) {
+		history.push([...v]);
+
+		for (let k = -d; k <= d; k += 2) {
+			const kIdx = k + maxD;
 			
-			tokens.push({
-				type: 'separator',
-				value: stack.join('')
-			})
-
-			stack.length = 0;
-		}
-
-		if(cursor.test(/\p{P}/u))
-			tokens.push({
-				type: 'punctuation',
-				value: cursor.read()
-			});
-
-		if(cursor.test(/\p{S}/u))
-			tokens.push({
-				type: 'symbol',
-				value: cursor.read()
-			});
-
-		if(cursor.test(/\p{M}/u))
-			tokens.push({
-				type: 'marks',
-				value: cursor.read()
-			});
-
-		if(cursor.test(/\p{C}/u))
-			tokens.push({
-				type: 'other',
-				value: cursor.read()
-			});
-
-		if(cursor.test(/\p{L}/u)){
-			while(cursor.test(/[\p{L}\p{N}'’`´ʹ-]/u))
-				stack.push(cursor.read());
-
-			const word = stack.join('');
-
-			tokens.push({
-				type: 'word',
-				value: word
-			});
-
-			stack.length = 0
-		}
-
-		if(cursor.test(/\p{N}/u)){
-			while(cursor.test(/[\p{N},.]/u))
-				stack.push(cursor.read());
-
-			tokens.push({
-				type: 'number',
-				value: stack.join('')
-			});
-
-			stack.length = 0;
-		}
-	}
-
-	return tokens;
-}
-
-
-class TokenCursor {
-	#tokens;
-	#index;
-
-	constructor(tokens){
-		this.#tokens = tokens;
-		this.#index = 0;
-	}
-
-	peek(len=0){
-		if(this.#index >= this.#tokens.length)
-			return null;
-		return this.#tokens[this.#index + len];
-	}
-
-	read(){
-		if(this.#index >= this.#tokens.length)
-			return null;
-		return this.#tokens[this.#index++];
-	}
-
-	test(...token_types){
-		return token_types.includes(this.peek()?.type);
-	}
-
-	skip_to(...token_types){
-		while(!this.eof() && !this.test(...token_types))
-			this.read();
-		return this.read();
-	}
-
-	eof(){
-		return this.#index >= this.#tokens.length;
-	}
-}
-
-
-function tokenizer(text){
-	const scanned_tokens = scanner(text);
-	return scanned_tokens.map(tok => {
-		return {
-			type: tok.type,
-			value: tok.value,
-			normal: tok.value.replaceAll(/['’`´ʹ]/g, '`')
-		}
-	})
-}
-
-
-function compare_tokens(origin_tok, input_tok){
-	return origin_tok?.normal === input_tok?.normal;
-}
-
-
-function diff_text(origin, input){
-	const cursor_origin = new TokenCursor(tokenizer(origin));
-	const cursor_input = new TokenCursor(tokenizer(input));
-	const diff_toks = [];
-
-	while(!cursor_input.eof()){
-		const input_tok = cursor_input.read()
-		if(!cursor_origin.eof() && input_tok.type == 'word'){
-			const origin_tok = cursor_origin.skip_to('word');
-			if(origin_tok === null){
-				diff_toks.push({
-					status: 'delete',
-					value: input_tok.value
-				})
-			} else if(compare_tokens(origin_tok, input_tok)){
-				diff_toks.push({
-					status: 'right',
-					value: input_tok.value
-				})
-			}
-			else {
-				diff_toks.push({
-					status: 'replace',
-					origin: origin_tok.value,
-					input: input_tok.value
-				})
+			if (k === -d || (k !== d && v[kIdx - 1] < v[kIdx + 1])) {
+				x = v[kIdx + 1]; 
+			} else {
+				x = v[kIdx - 1] + 1; 
 			}
 
-			continue;
+			y = x - k;
+
+			while (x < n && y < m && a[x] === b[y]) {
+				x++;
+				y++;
+			}
+
+			v[kIdx] = x;
+
+			if (x >= n && y >= m) {
+				found = true;
+				break;
+			}
+		}
+		if (found) break;
+	}
+
+	// Крок 2: Відновлення шляху
+	x = n;
+	y = m;
+	const diff = [];
+
+	for (let d = history.length - 1; d >= 0; d--) {
+		const currentV = history[d];
+		const k = x - y;
+		const kIdx = k + maxD;
+
+		let prevK;
+		if (k === -d || (k !== d && currentV[kIdx - 1] < currentV[kIdx + 1])) {
+			prevK = k + 1;
+		} else {
+			prevK = k - 1;
 		}
 
-		diff_toks.push({
-			status: cursor_origin.eof() ? 'delete': 'skip',
-			value: input_tok.value
-		})
+		const prevX = currentV[prevK + maxD];
+		const prevY = prevX - prevK;
+
+		while (x > prevX && y > prevY) {
+			// Беремо символ з попередньо обробленого cleanA
+			diff.unshift({ type: 'keep', value: cleanA[x - 1] });
+			x--;
+			y--;
+		}
+
+		if (d > 0) {
+			if (x === prevX) {
+				// Беремо символ з попередньо обробленого cleanB
+				diff.unshift({ type: 'add', value: cleanB[y - 1] });
+				y--;
+			} else {
+				// Беремо символ з попередньо обробленого cleanA
+				diff.unshift({ type: 'remove', value: cleanA[x - 1] });
+				x--;
+			}
+		}
 	}
 
-	while(!cursor_origin.eof()){
-		const origin_tok = cursor_origin.read();
-		diff_toks.push({
-			status: 'add',
-			value: origin_tok.value
-		})
+	return diff;
+}
+
+function groupDiff(diffList) {
+	if (!diffList || diffList.length === 0) return [];
+
+	const grouped = [];
+	
+	// Ініціалізуємо перший фрагмент
+	let currentGroup = {
+		type: diffList[0].type,
+		value: diffList[0].value
+	};
+
+	for (let i = 1; i < diffList.length; i++) {
+		const item = diffList[i];
+
+		// Якщо тип операції збігається, додаємо символ до поточного фрагмента
+		if (item.type === currentGroup.type) {
+			currentGroup.value += item.value;
+		} else {
+			// Якщо тип змінився, зберігаємо старий фрагмент і створюємо новий
+			grouped.push(currentGroup);
+			currentGroup = {
+				type: item.type,
+				value: item.value
+			};
+		}
 	}
 
-	return diff_toks;
+	// Не забуваємо додати останній фрагмент після виходу з циклу
+	grouped.push(currentGroup);
+
+	return grouped;
 }
