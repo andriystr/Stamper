@@ -1,157 +1,141 @@
-/* Базові налаштування для всього проєкту */
 * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: 'Segoe UI', system-ui, sans-serif;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+	font-family: 'Segoe UI', system-ui, sans-serif;
 }
 
-/* Сторінка браузера ніколи не матиме власного скролу */
 body {
-    background-color: #f0f2f5;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    height: 100vh;
-    overflow: hidden; 
-    padding: 24px;
+	background-color: #f0f2f5;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	min-height: 100vh;
+	height: 100vh;
+	overflow: hidden; 
+	padding: 24px;
 }
 
-/* ГОЛОВНИЙ КОНТЕЙНЕР (Охоплює текст + кнопки) */
 .app-container {
-    background: #ffffff;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
-    width: 100%;
-    max-width: 900px; /* Комфортна ширина для читання на ПК */
-    
-    /* Суворе обмеження висоти для ПК */
-    height: 100%;
-    max-height: 80vh; /* Займає до 80% висоти екрана, щоб не впиратися в краї */
-    
-    overflow: hidden; /* Блокує вихід контенту за межі картки */
-    display: flex;
-    flex-direction: column;
+	background: #ffffff;
+	border-radius: 16px;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+	width: 100%;
+	max-width: 900px;
+
+	height: 100%;
+	max-height: 80vh;
+	
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
 }
 
-/* 1. ВЕРХНІЙ ПРОСТІР ІЗ ВНУТРІШНІМ СКРОЛОМ */
 .content-space {
-    /* Однаковий симетричний padding з усіх чотирьох боків */
-    padding: 40px; 
-    flex-grow: 1; /* Займає все вільне місце від кнопок до верху */
-    overflow-y: auto; /* Магія внутрішньої прокрутки */
-    background-color: #ffffff;
-    
-    /* Змушує скролбару зупинятися на рівні верхнього/бокового відступу */
-    scroll-padding-bottom: 40px; 
+
+	padding: 40px; 
+	flex-grow: 1;
+	overflow-y: auto;
+	background-color: #ffffff;
+
+	scroll-padding-bottom: 40px; 
 }
 
-/* Стиль для блоку, який буде contenteditable */
 .text-editable {
-    font-size: 18px;
-    line-height: 1.7;
-    color: #2d3748;
-    white-space: pre-wrap;
-    word-break: break-word;
-    outline: none; /* Прибирає стандартну рамку браузера при редагуванні */
-    
-    /* Використовуємо display: block, щоб уникнути багів висоти flex-блоків */
-    display: block;
+	font-size: 18px;
+	line-height: 1.7;
+	color: #2d3748;
+	white-space: pre-wrap;
+	word-break: break-word;
+	outline: none;
+	display: block;
 }
 
-/* Надійний штучний відступ, який ТОЧНО дорівнює боковим та верхньому (40px) */
 .text-editable::after {
-    content: "";
-    display: block;
-    height: 40px; /* Ідеально симетричний відступ знизу */
-    width: 100%;
-    pointer-events: none; /* Щоб не заважав виділенню тексту */
+	content: "";
+	display: block;
+	height: 40px;
+	width: 100%;
+	pointer-events: none;
 }
 
-/* Гарний кастомний скролбар (для сучасного вигляду) */
 .content-space::-webkit-scrollbar {
-    width: 8px;
+	width: 8px;
 }
 .content-space::-webkit-scrollbar-track {
-    background: transparent;
+	background: transparent;
 }
 .content-space::-webkit-scrollbar-thumb {
-    background: #cbd5e0;
-    border-radius: 4px;
+	background: #cbd5e0;
+	border-radius: 4px;
 }
 .content-space::-webkit-scrollbar-thumb:hover {
-    background: #a0aec0;
+	background: #a0aec0;
 }
 
-/* 2. НИЖНІЙ ПРОСТІР (ЗАФІКСОВАНА ПАНЕЛЬ ДЛЯ КНОПОК) */
 .actions-space {
-    background-color: #f7fafc;
-    border-top: 1px solid #edf2f7; /* Лінія-розділювач */
-    padding: 24px 40px;
-    display: flex;
-    gap: 16px;
-    justify-content: flex-end; /* Кнопки притиснуті праворуч */
-    flex-shrink: 0; /* Гарантує, що панель кнопок ніколи не стиснеться */
+	background-color: #f7fafc;
+	border-top: 1px solid #edf2f7;
+	padding: 24px 40px;
+	display: flex;
+	gap: 16px;
+	justify-content: flex-end;
+	flex-shrink: 0;
 }
 
-/* Стилі кнопок */
 .btn {
-    padding: 12px 28px;
-    font-size: 15px;
-    font-weight: 600;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-    min-width: 130px;
-    text-align: center;
+	padding: 12px 28px;
+	font-size: 15px;
+	font-weight: 600;
+	border: none;
+	border-radius: 8px;
+	cursor: pointer;
+	transition: all 0.2s;
+	min-width: 130px;
+	text-align: center;
 }
 
 .btn-primary {
-    background-color: #3182ce;
-    color: white;
+	background-color: #3182ce;
+	color: white;
 }
 .btn-primary:hover {
-    background-color: #2b6cb0;
+	background-color: #2b6cb0;
 }
 
 .btn-secondary {
-    background-color: #e2e8f0;
-    color: #4a5568;
+	background-color: #e2e8f0;
+	color: #4a5568;
 }
 .btn-secondary:hover {
-    background-color: #cbd5e0;
+	background-color: #cbd5e0;
 }
 
-/* АДАПТАЦІЯ ПІД МОБІЛЬНІ ЕКРАНИ (СМАРТФОНИ) */
 @media (max-width: 768px) {
-    body {
-        padding: 0;
-    }
+	body {
+		padding: 0;
+	}
 
-    .app-container {
-        border-radius: 0;
-        max-height: 100vh; /* На смартфонах додаток займає рівно 100% висоти екрана */
-    }
+	.app-container {
+		border-radius: 0;
+		max-height: 100vh;
+	}
 
-    .content-space {
-        /* На мобільних усі відступи стають рівномірно по 20px */
-        padding: 20px; 
-        scroll-padding-bottom: 20px;
-    }
+	.content-space {
+		padding: 20px; 
+		scroll-padding-bottom: 20px;
+	}
 
-    /* Нижній штучний відступ на мобільних також автоматично стає 20px */
-    .text-editable::after {
-        height: 20px; 
-    }
+	.text-editable::after {
+		height: 20px; 
+	}
 
-    .actions-space {
-        padding: 16px 20px;
-        flex-direction: column-reverse; /* Кнопки стають одна над одною */
-    }
+	.actions-space {
+		padding: 16px 20px;
+		flex-direction: column-reverse;
+	}
 
-    .btn {
-        width: 100%; /* Кнопки розтягуються на повну ширину екрана смартфона */
-    }
+	.btn {
+		width: 100%;
+	}
 }
