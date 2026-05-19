@@ -1,26 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uk">
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Document</title>
-	<script src="tokenizer.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Адаптивний Веб-Додаток</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-	<textarea></textarea>
-	<br>
-	<button>Go</button>
-	<output>
-		<pre></pre>
-	</output>
-	<script>
-		const ta = document.querySelector('textarea');
-		const out = document.querySelector('output > pre');
-		const btn = document.querySelector('button');
 
-		btn.addEventListener('click', e => {
-			if(ta.value) out.innerText = JSON.stringify(tokenizer(ta.value), null, 2);
-		})
-	</script>
+    <div class="app-container">
+        <!-- ВЕРХНІЙ ПРОСТІР: Має внутрішній скрол для великого тексту -->
+        <div class="content-space">
+            <!-- Коли через JS додасте contenteditable="true", блок працюватиме ідеально -->
+            <div class="text-editable" contenteditable="true">
+                Це ваш текст. Якщо він стане дуже великим і перевищить розміри вікна, цей білий блок отримає акуратну внутрішню прокрутку. Головна сторінка сайту при цьому залишиться непорушною, а кнопки знизу завжди будуть на видному місці, зафіксовані на екрані.
+                <br><br>
+                Спробуйте скопіювати цей текст багато разів, щоб перевірити, як працює прокрутка!
+            </div>
+        </div>
+
+        <!-- НИЖНІЙ ПРОСТІР: Зафіксована панель для кнопок (ніколи не скролиться) -->
+        <div class="actions-space">
+            <button class="btn btn-secondary">Скасувати</button>
+            <button class="btn btn-primary">Зберегти зміни</button>
+        </div>
+    </div>
+
 </body>
 </html>
