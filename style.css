@@ -206,3 +206,52 @@ body {
 		width: 100%; 
 	}
 }
+
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.item-info {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.btn-delete {
+    background: transparent;
+    border: none;
+    color: #a0aec0;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.btn-delete:hover {
+    background-color: #fed7d7;
+    color: #e53e3e;
+}
+
+.btn-delete:active {
+    transform: scale(0.9);
+}
+
+@media (max-width: 768px) {
+    .btn-delete {
+        width: 44px;
+        height: 44px;
+        color: #e53e3e;
+        background-color: #f7fafc;
+    }
+}
+
