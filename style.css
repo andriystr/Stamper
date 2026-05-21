@@ -1,21 +1,293 @@
+/* ==========================================================================
+   1. RESET STYLES & PAGE STRUCTURE
+   ========================================================================== */
+* {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
 
 body {
-	background: #EEE;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+	background-color: #f8fafc;
+	color: #0f172a;
+	padding: 20px;
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+	align-items: center;
+	height: 100vh; /* Fix the height of the entire screen */
+	overflow: hidden; /* Prevent global page scrolling */
 }
 
+/* ==========================================================================
+   2. PAGE HEADER
+   ========================================================================== */
 header {
+	width: 100%;
+	max-width: 1000px;
 	display: flex;
+	align-items: center;
 	justify-content: space-between;
+	padding: 16px 24px;
+	background-color: #ffffff;
+	border-radius: 12px;
+	border: 1px solid #e2e8f0;
+	box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+	flex-shrink: 0; /* Header never shrinks */
 }
 
+/* "Back" button in the header (link-style with no background) */
+.wrapper-left button {
+	background: none !important;
+	border: none !important;
+	padding: 0 !important;
+	color: #0284c7;
+	font-weight: 500;
+	font-size: 1rem;
+	cursor: pointer;
+	transition: color 0.2s;
+}
+
+.wrapper-left button:hover {
+	color: #0369a1;
+}
+
+header h2 {
+	font-size: 1.25rem;
+	font-weight: 600;
+	color: #1e293b;
+}
+
+.wrapper-right {
+	width: 50px; /* Increased slightly for visual balance with the Back button */
+}
+
+/* ==========================================================================
+   3. PANEL ARCHITECTURE (SPA LOGIC)
+   ========================================================================== */
 .frame-wrapper {
-	display: flex;
-	justify-content: center;
+	width: 100%;
+	max-width: 1000px;
+	flex-grow: 1;
+	height: calc(100vh - 120px); /* Calculate remaining available height */
+	display: none; /* Hide all panels by default */
+}
+
+.frame-wrapper.active {
+	display: block; /* Show only the active panel */
 }
 
 .frame {
-	background: #FFF;
-	width: 100%;
-	max-width: 800px;
+	background-color: #ffffff;
+	border-radius: 16px;
+	padding: 24px;
+	border: 1px solid #e2e8f0;
+	box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+	height: 100%;
+	display: flex;
+	flex-direction: column;
 }
 
+/* Specific container for the card editing screen */
+.frame.edit-card {
+	gap: 20px;
+}
+
+/* Scroll container for multiple editors */
+.text-list {
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+	flex-grow: 1;
+	overflow-y: auto; /* Independent vertical scroll for cards */
+	padding-right: 4px;
+}
+
+/* ==========================================================================
+   4. EDITOR COMPONENT & TEXT AREA
+   ========================================================================== */
+.editor {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	flex-shrink: 0; /* Cards in the list do not shrink */
+}
+
+/* If the editor is the only element on the screen (first frame) */
+.frame > .editor {
+	height: 100%;
+}
+
+/* Title + Delete button on the same level */
+.editor .title {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	flex-shrink: 0;
+}
+
+.editor .title h3 {
+	font-size: 1.1rem;
+	color: #64748b;
+}
+
+/* Text working area (contenteditable) */
+.editor .text {
+	background-color: #f1f5f9;
+	padding: 16px;
+	border-radius: 8px;
+	border: 1px solid #e2e8f0;
+	line-height: 1.8; /* Increased line-height for better <ruby> positioning */
+	color: #334155;
+	word-break: break-word;
+	outline: none;
+	
+	/* Height restriction for fields inside the list */
+	max-height: 200px;
+	overflow-y: auto;
+}
+
+/* If the field is the only one on the screen, allow it to take maximum space */
+.frame > .editor .text {
+	flex-grow: 1;
+	max-height: none;
+}
+
+/* Keep visual stability during text input (no blue borders/outlines) */
+.editor .text:focus {
+	outline: none;
+	background-color: #f1f5f9;
+	border-color: #e2e8f0;
+	box-shadow: none;
+}
+
+/* ==========================================================================
+   5. TEACHER REVIEW EFFECT ("RED PEN")
+   ========================================================================== */
+
+/* Deleted text: original word color (dark), strikethrough line is RED */
+.editor .text del {
+	color: inherit;
+	text-decoration: line-through;
+	text-decoration-color: #dc2626;
+	text-decoration-thickness: 2px;
+}
+
+/* Inserted text / teacher's notes: completely RED */
+.editor .text ins {
+	color: #dc2626;
+	text-decoration: none;
+	font-weight: inherit;
+}
+
+/* Container for the correct variation above the error */
+.editor .text ruby {
+	ruby-position: over;
+	ruby-align: center;
+}
+
+/* Red teacher's note above the word */
+.editor .text rt {
+	font-size: 0.75rem;
+	color: #dc2626;
+	font-weight: 600;
+	padding-bottom: 4px;
+	user-select: none; /* Prevent accidental mouse selection */
+}
+
+/* ==========================================================================
+   6. BUTTONS & CONTROLS
+   ========================================================================== */
+.controls {
+	flex-shrink: 0;
+	display: flex;
+	gap: 12px;
+	justify-content: flex-end;
+}
+
+/* Global settings for absolutely all buttons */
+button {
+	font-family: inherit;
+	color: white;
+	border: none;
+	border-radius: 8px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background-color 0.2s, transform 0.1s;
+}
+
+button:active {
+	transform: scale(0.98);
+}
+
+/* Large standard buttons in action panels (e.g., Ok) */
+.controls button {
+	padding: 12px 24px;
+	background-color: #2563eb;
+}
+
+.controls button:hover {
+	background-color: #1d4ed8;
+}
+
+/* Button styling based on unique classes */
+.action-add-text {
+	background-color: #10b981 !important; /* Green for Add */
+}
+
+.action-add-text:hover {
+	background-color: #059669 !important;
+}
+
+.action-save-text {
+	background-color: #2563eb !important; /* Blue for Save */
+}
+
+.action-save-text:hover {
+	background-color: #1d4ed8 !important;
+}
+
+/* Compact red Delete button inside .title */
+.editor .title button {
+	padding: 6px 14px;
+	font-size: 0.85rem;
+	background-color: #ef4444;
+}
+
+.editor .title button:hover {
+	background-color: #dc2626;
+}
+
+/* ==========================================================================
+   7. NAVIGATION CARDS & MENU
+   ========================================================================== */
+.frame.menu {
+	gap: 12px;
+	overflow-y: auto;
+}
+
+.card {
+	background-color: #f8fafc;
+	padding: 18px 24px;
+	border-radius: 10px;
+	border: 1px solid #e2e8f0;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	transition: background-color 0.2s, transform 0.2s, border-color 0.2s;
+	cursor: pointer;
+	flex-shrink: 0;
+}
+
+.card:hover {
+	background-color: #f1f5f9;
+	border-color: #cbd5e1;
+	transform: translateY(-2px);
+}
+
+.card h3 {
+	font-size: 1rem;
+	font-weight: 500;
+	color: #334155;
+}
