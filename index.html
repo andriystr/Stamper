@@ -1,28 +1,57 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="en">
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Адаптивний Веб-Додаток</title>
+	<title>Document</title>
 	<link rel="stylesheet" href="style.css">
-	<script src="script.js"></script>
 </head>
 <body>
-
-	<div class="app-container">
-		<div class="content-space">
-			<div class="text-editable" contenteditable="true">
-				Це ваш текст. Якщо він стане дуже великим і перевищить розміри вікна, цей білий блок отримає акуратну внутрішню прокрутку. Головна сторінка сайту при цьому залишиться непорушною, а кнопки знизу завжди будуть на видному місці, зафіксовані на екрані.
-				<br><br>
-				Спробуйте скопіювати цей текст багато разів, щоб перевірити, як працює прокрутка!
+	<header>
+		<div class="wrapper-left"></div>
+		<h2>Panel</h2>
+		<div class="wrapper-right"></div>
+	</header>
+	
+	<div class="frame-wrapper">
+		<div class="frame editor">
+			<div class="title">
+				<h3>Title</h3>
 			</div>
-		</div>
-
-		<div class="actions-space">
-			<button class="btn btn-secondary">Скасувати</button>
-			<button class="btn btn-primary">Зберегти зміни</button>
+			<div class="text">Some text</div>
+			<div class="controls">
+				<button>Ok</button>
+			</div>
 		</div>
 	</div>
 
+	<div class="frame-wrapper">
+		<div class="frame edit-card">
+			<div class="text-list">
+				<div class="text-part">
+					<div class="title">
+						<h3>title</h3>
+					</div>
+					<div class="text">text</div>
+					<div class="controls">
+						<button>Ok</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="frame-wrapper">
+		<div class="frame menu">
+			<div class="card">
+				<h3>Card 1</h3>
+				<div class="controls"></div>
+			</div>
+			<div class="card">
+				<h3>Card 2</h3>
+				<div class="controls"></div>
+			</div>
+		</div>
+	</div>
 </body>
 </html>
