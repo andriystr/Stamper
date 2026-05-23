@@ -94,6 +94,18 @@ header h2 {
 	gap: 20px;
 }
 
+/* Card name heading inside the edit screen */
+.frame.edit-card > h2 {
+	font-size: 1.4rem;
+	font-weight: 600;
+	color: #0f172a;
+	padding-bottom: 12px;
+	border-bottom: 2px solid #f1f5f9;
+	flex-shrink: 0; /* Header stays fixed at the top, never shrinks */
+	margin: 0;
+}
+
+
 /* Scroll container for multiple editors */
 .text-list {
 	display: flex;
@@ -262,14 +274,25 @@ button:active {
 /* ==========================================================================
    7. NAVIGATION CARDS & MENU
    ========================================================================== */
+/* The main menu frame container */
 .frame.menu {
-	gap: 12px;
-	overflow-y: auto;
+	gap: 20px;
 }
 
+/* Scroll container for multiple cards */
+.card-list {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	flex-grow: 1;
+	overflow-y: auto; /* Independent vertical scroll for the cards list */
+	padding-right: 4px;
+}
+
+/* Individual navigation card */
 .card {
 	background-color: #f8fafc;
-	padding: 18px 24px;
+	padding: 14px 20px;
 	border-radius: 10px;
 	border: 1px solid #e2e8f0;
 	display: flex;
@@ -277,17 +300,28 @@ button:active {
 	align-items: center;
 	transition: background-color 0.2s, transform 0.2s, border-color 0.2s;
 	cursor: pointer;
-	flex-shrink: 0;
+	flex-shrink: 0; /* Cards do not shrink when the list grows */
 }
 
 .card:hover {
 	background-color: #f1f5f9;
 	border-color: #cbd5e1;
-	transform: translateY(-2px);
+	transform: translateY(-1px);
 }
 
 .card h3 {
 	font-size: 1rem;
 	font-weight: 500;
 	color: #334155;
+}
+
+/* Compact Edit button inside individual card controls */
+.card .controls button.action-edit-text {
+	padding: 6px 14px;
+	font-size: 0.85rem;
+	background-color: #64748b; /* Neutral slate color for edit action */
+}
+
+.card .controls button.action-edit-text:hover {
+	background-color: #475569;
 }
