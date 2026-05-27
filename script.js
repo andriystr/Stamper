@@ -1,4 +1,6 @@
 
+// ================================== Utils ==================================
+
 function diffText(textA, textB){
 	const cleanA = textA.replace(/\s+/gu, ' ');
 	const cleanB = textB.replace(/\s+/gu, ' ');
@@ -110,3 +112,5 @@ function groupDiff(diffList) {
 
 	return grouped;
 }
+
+// ================================ End Utils ================================
