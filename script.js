@@ -1,20 +1,7 @@
 
-function normalizeChar(char) {
-	if (!char) return '';
-
-	if (/['"`’‘ʼ״׳′]/u.test(char)) {
-		return "'"; 
-	}
-
-	return char;
-}
-
 function diffText(textA, textB){
 	const cleanA = textA.replace(/\s+/gu, ' ');
 	const cleanB = textB.replace(/\s+/gu, ' ');
-
-	const a = Array.from(cleanA).map(normalizeChar);
-	const b = Array.from(cleanB).map(normalizeChar);
 
 	const n = a.length;
 	const m = b.length;
