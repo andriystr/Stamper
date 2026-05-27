@@ -2,9 +2,6 @@
 // ================================== Utils ==================================
 
 function diffText(textA, textB){
-	const cleanA = textA.replace(/\s+/gu, ' ');
-	const cleanB = textB.replace(/\s+/gu, ' ');
-
 	const n = a.length;
 	const m = b.length;
 	const maxD = n + m;
