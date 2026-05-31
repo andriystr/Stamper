@@ -294,8 +294,12 @@ class TrainerModel {
 	}
 
 	getDifference(original, userInput){
-		const origin = original.replaceAll(/\s+/g, ' ').replace(/[’‘‛ʼ`´՚᾽᾿’]/g, "'");
-		const input = userInput.replaceAll(/\s+/g, ' ').replace(/[’‘‛ʼ`´՚᾽᾿’]/g, "'");
+		const origin = original.replaceAll(/\s+/g, ' ')
+			.replace(/[’‘‛ʼ`´՚᾽᾿’]/g, "'")
+			.replace(/ — /g, ' - ');
+		const input = userInput.replaceAll(/\s+/g, ' ')
+			.replace(/[’‘‛ʼ`´՚᾽᾿’]/g, "'")
+			.replace(/ — /g, ' - ');
 
 		const diffList = diffText(origin, input);
 		console.log('diffList:', diffList);// DEBUG
