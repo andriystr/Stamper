@@ -16,7 +16,10 @@ body {
 	flex-direction: column;
 	gap: 24px;
 	align-items: center;
-	height: 100vh; /* Fix the height of the entire screen */
+
+	min-height: -webkit-fill-available;
+	height: 100dvh;
+
 	overflow: hidden; /* Prevent global page scrolling */
 }
 
@@ -77,13 +80,14 @@ header h2 {
 .frame-wrapper {
 	width: 100%;
 	max-width: 1000px;
-	flex-grow: 1;
-	height: calc(100vh - 120px); /* Calculate remaining available height */
+	flex-grow: 1; 
+	min-height: 0;
 	display: none; /* Hide all panels by default */
 }
 
 .frame-wrapper.active {
-	display: block; /* Show only the active panel */
+	display: flex; 
+	flex-direction: column;
 }
 
 .frame {
