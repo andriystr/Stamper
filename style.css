@@ -1,6 +1,6 @@
 /* ==========================================================================
-   1. RESET STYLES & PAGE STRUCTURE
-   ========================================================================== */
+	1. RESET STYLES & PAGE STRUCTURE
+	========================================================================== */
 * {
 	box-sizing: border-box;
 	margin: 0;
@@ -20,9 +20,17 @@ body {
 	overflow: hidden; /* Prevent global page scrolling */
 }
 
+pre {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.hidden {
+	display: none !important;
+}
+
 /* ==========================================================================
-   2. PAGE HEADER
-   ========================================================================== */
+	2. PAGE HEADER
+	========================================================================== */
 header {
 	width: 100%;
 	max-width: 1000px;
@@ -38,7 +46,7 @@ header {
 }
 
 /* "Back" button in the header (link-style with no background) */
-.wrapper-left button {
+.wrapper-left button, .wrapper-right button {
 	background: none !important;
 	border: none !important;
 	padding: 0 !important;
@@ -64,8 +72,8 @@ header h2 {
 }
 
 /* ==========================================================================
-   3. PANEL ARCHITECTURE (SPA LOGIC)
-   ========================================================================== */
+	3. PANEL ARCHITECTURE (SPA LOGIC)
+	========================================================================== */
 .frame-wrapper {
 	width: 100%;
 	max-width: 1000px;
@@ -103,6 +111,7 @@ header h2 {
 	border-bottom: 2px solid #f1f5f9;
 	flex-shrink: 0; /* Header stays fixed at the top, never shrinks */
 	margin: 0;
+	outline: none;
 }
 
 
@@ -117,8 +126,8 @@ header h2 {
 }
 
 /* ==========================================================================
-   4. EDITOR COMPONENT & TEXT AREA
-   ========================================================================== */
+	4. EDITOR COMPONENT & TEXT AREA
+	========================================================================== */
 .editor {
 	display: flex;
 	flex-direction: column;
@@ -142,11 +151,12 @@ header h2 {
 .editor .title h3 {
 	font-size: 1.1rem;
 	color: #64748b;
+	outline: none;
 }
 
 /* Text working area (contenteditable) */
 .editor .text {
-	background-color: #f1f5f9;
+	background-color: #ffffff;
 	padding: 16px;
 	border-radius: 8px;
 	border: 1px solid #e2e8f0;
@@ -158,6 +168,10 @@ header h2 {
 	/* Height restriction for fields inside the list */
 	max-height: 200px;
 	overflow-y: auto;
+}
+
+.editor [contenteditable].text {
+	background-color: #f1f5f9;
 }
 
 /* If the field is the only one on the screen, allow it to take maximum space */
@@ -175,8 +189,8 @@ header h2 {
 }
 
 /* ==========================================================================
-   5. TEACHER REVIEW EFFECT ("RED PEN")
-   ========================================================================== */
+	5. TEACHER REVIEW EFFECT ("RED PEN")
+	========================================================================== */
 
 /* Deleted text: original word color (dark), strikethrough line is RED */
 .editor .text del {
@@ -184,6 +198,10 @@ header h2 {
 	text-decoration: line-through;
 	text-decoration-color: #dc2626;
 	text-decoration-thickness: 2px;
+}
+
+.editor .text u {
+	text-decoration: underline solid red;
 }
 
 /* Inserted text / teacher's notes: completely RED */
@@ -209,8 +227,8 @@ header h2 {
 }
 
 /* ==========================================================================
-   6. BUTTONS & CONTROLS
-   ========================================================================== */
+	6. BUTTONS & CONTROLS
+	========================================================================== */
 .controls {
 	flex-shrink: 0;
 	display: flex;
@@ -272,8 +290,8 @@ button:active {
 }
 
 /* ==========================================================================
-   7. NAVIGATION CARDS & MENU
-   ========================================================================== */
+	7. NAVIGATION CARDS & MENU
+	========================================================================== */
 /* The main menu frame container */
 .frame.menu {
 	gap: 20px;
@@ -324,4 +342,9 @@ button:active {
 
 .card .controls button.action-edit-text:hover {
 	background-color: #475569;
+}
+
+.trainer .controls {
+	justify-content: space-evenly;
+	flex-wrap: wrap;
 }
