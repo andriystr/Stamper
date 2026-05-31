@@ -162,8 +162,11 @@ header h2 {
 	border: 1px solid #e2e8f0;
 	line-height: 1.8; /* Increased line-height for better <ruby> positioning */
 	color: #334155;
-	word-break: break-word;
 	outline: none;
+
+	white-space: pre-wrap;
+	word-break: break-word;
+	overflow-wrap: break-word;
 	
 	/* Height restriction for fields inside the list */
 	max-height: 200px;
