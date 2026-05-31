@@ -739,7 +739,7 @@ class MemoryCheckController {
 
 	async active(){
 		this.view.show();
-		this.app.pannel.setTitle('Memory check');
+		this.app.pannel.setTitle(this.currentCard.name);
 		this.app.pannel.activeLeftButton('Back', async () => await this.app.toMenu());
 	}
 
