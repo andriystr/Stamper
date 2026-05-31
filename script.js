@@ -513,7 +513,7 @@ class MemoryCheckView extends FrameView {
 		this.nextTextElement = this.element.querySelector('.action-next-text');
 
 		this.textElement.addEventListener('click', event => {
-			if(!this.textElement.attributes.contenteditable){
+			if(!this.textElement.attributes.contenteditable && this.state != 'corects'){
 				this.#activeEditor();
 				this.textElement.innerText = '';
 			}
@@ -571,6 +571,7 @@ class MemoryCheckView extends FrameView {
 	}
 
 	renderText(text){
+		this.state = 'text';
 		this.#deactiveEditor();
 		this.checkTextElement.classList.remove('hidden');
 		this.againTextElement.classList.add('hidden');
@@ -578,6 +579,7 @@ class MemoryCheckView extends FrameView {
 	}
 
 	renderCorects(difference){
+		this.state = 'corects';
 		this.#deactiveEditor();
 		this.checkTextElement.classList.add('hidden');
 		this.againTextElement.classList.remove('hidden');
