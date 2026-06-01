@@ -1,11 +1,11 @@
 const CACHE_NAME = 'v1';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/script.js',
-  '/favicon.png',
-  '/manifest.json'
+  './',
+  'index.html',
+  'style.css',
+  'script.js',
+  'favicon.png',
+  'manifest.json'
 ];
 
 // Installation: caching assets
