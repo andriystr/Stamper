@@ -809,4 +809,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 	window.app = app;
 })
 
+if ('serviceWorker' in navigator) {
+	window.addEventListener('load', () => {
+		navigator.serviceWorker.register('/sw.js').then((reg) => {
+			
+			// Check for updates once immediately upon application startup
+			reg.update();
+
+			// Logic when a new Service Worker is detected
+			reg.addEventListener('updatefound', () => {
+				const newWorker = reg.installing;
+				newWorker.addEventListener('statechange', () => {
+					if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+						// Send a signal to activate the new SW immediately
+						newWorker.postMessage('skipWaiting');
+					}
+				});
+			});
+		});
+
+		// Reload the page only if the user is at the initial stage of loading
+		let refreshing = false;
+		navigator.serviceWorker.addEventListener('controllerchange', () => {
+			if (!refreshing) {
+				refreshing = true;
+				window.location.reload();
+			}
+		});
+	});
+}
+
 // -------------------------- End Init Application ---------------------------
