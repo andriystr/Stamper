@@ -302,13 +302,9 @@ class TrainerModel {
 			.replace(/ — /g, ' - ');
 
 		const diffList = diffText(origin, input);
-		console.log('diffList:', diffList);// DEBUG
 		const groupedDiff = groupDiff(diffList);
-		console.log('groupedDiff:', groupedDiff);// DEBUG
 		const diffWithReplaces = detectReplacements(groupedDiff, 10);
-		console.log('diffWithReplaces:', diffWithReplaces);// DEBUG
-		return diffWithReplaces; // DEBUG
-		//return diffWithReplaces;
+		return diffWithReplaces;
 	}
 }
 
