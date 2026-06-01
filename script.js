@@ -811,7 +811,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 if ('serviceWorker' in navigator) {
 	window.addEventListener('load', () => {
-		navigator.serviceWorker.register('/sw.js').then((reg) => {
+		navigator.serviceWorker.register('sw.js').then((reg) => {
 			
 			// Check for updates once immediately upon application startup
 			reg.update();
