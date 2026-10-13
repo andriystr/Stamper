@@ -4,7 +4,7 @@ const ASSETS = [
   'index.html',
   'style.css',
   'script.js',
-  'favicon.png',
+  'icon.png',
   'manifest.json'
 ];
 
