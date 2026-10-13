@@ -155,6 +155,13 @@ function detectReplacements(groupedDiff, maxLengthDiff = 10) {
 // ================================== Texts ==================================
 
 const UI_TEXT = {
+	back: 'Назад',
+	delete: 'Видалити',
+	edit: 'Редагувати',
+	menuTitle: 'Картки',
+	editorTitle: 'Редактор',
+	newCardName: 'Нова картка',
+	newTextTitle: 'Назва тексту',
 	nameRequired: 'Назва картки не може бути порожньою.',
 	textRequired: 'Додайте хоча б один текст, перш ніж зберегти картку.',
 	noTextsInCard: 'У цій картці немає текстів. Відкрийте редактор і додайте текст.',
@@ -412,7 +419,7 @@ class MenuView extends FrameView {
 
 			const editButtonElem = document.createElement('button');
 			editButtonElem.classList.add('action-edit-text');
-			editButtonElem.textContent = 'Edit';
+			editButtonElem.textContent = UI_TEXT.edit;
 
 			controlsElem.appendChild(editButtonElem);
 			cardElem.append(nameElem, controlsElem);
@@ -447,7 +454,7 @@ class CardEditorView extends FrameView {
 		this.saveButtonElement = this.element.querySelector('.action-save');
 
 		this.addButtonElement.addEventListener('click', event => {
-			const textEditorElem = this.#newTextElement(new Text('title', ''));
+			const textEditorElem = this.#newTextElement(new Text(UI_TEXT.newTextTitle, ''));
 			this.textListElement.appendChild(textEditorElem);
 			this.#addEventHandlers(textEditorElem);
 		});
@@ -501,7 +508,7 @@ class CardEditorView extends FrameView {
 
 		const deleteButtonElem = document.createElement('button');
 		deleteButtonElem.classList.add('action-delete-text');
-		deleteButtonElem.textContent = 'Delete';
+		deleteButtonElem.textContent = UI_TEXT.delete;
 
 		titleElem.append(titleTextElem, deleteButtonElem);
 
@@ -696,7 +703,7 @@ class MenuController {
 
 		this.view.show();
 
-		this.app.pannel.setTitle('Menu');
+		this.app.pannel.setTitle(UI_TEXT.menuTitle);
 		this.app.pannel.deactiveLeftButton();
 		this.app.pannel.deactiveRightButton();
 	}
@@ -729,9 +736,9 @@ class CardEditorController {
 
 	async active(){
 		this.view.show();
-		this.app.pannel.setTitle('Editor');
-		this.app.pannel.activeLeftButton('Back', async () => await this.app.toMenu());
-		this.app.pannel.activeRightButton('Delete', async () => {
+		this.app.pannel.setTitle(UI_TEXT.editorTitle);
+		this.app.pannel.activeLeftButton(UI_TEXT.back, async () => await this.app.toMenu());
+		this.app.pannel.activeRightButton(UI_TEXT.delete, async () => {
 			await this.app.model.deleteCard(this.view.getCurrentCardId());
 			await this.app.toMenu();
 		});
@@ -745,7 +752,7 @@ class CardEditorController {
 		if(id != null){
 			this.view.renderCard(await this.app.model.get(id));
 		} else {
-			this.view.renderCard(new Card(undefined, 'Name', [new Text('title', '')]));
+			this.view.renderCard(new Card(undefined, UI_TEXT.newCardName, [new Text(UI_TEXT.newTextTitle, '')]));
 		}
 	}
 }
@@ -802,7 +809,7 @@ class MemoryCheckController {
 	async active(){
 		this.view.show();
 		this.app.pannel.setTitle(this.currentCard.name);
-		this.app.pannel.activeLeftButton('Back', async () => await this.app.toMenu());
+		this.app.pannel.activeLeftButton(UI_TEXT.back, async () => await this.app.toMenu());
 	}
 
 	async deactive(){
