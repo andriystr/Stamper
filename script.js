@@ -321,7 +321,7 @@ const EXPORT_FILE_NAME = 'stamper-cards.json';
 function exportCards(cards){
 	return JSON.stringify({
 		format: FILE_FORMAT,
-		version: FILE_VERSION,
+		formatVersion: FILE_VERSION,
 		cards: cards.map(card => ({
 			name: card.name,
 			texts: card.texts.map(text => ({ title: text.title, body: text.body })),
@@ -342,7 +342,7 @@ function parseCardsFile(text){
 	if(typeof data !== 'object' || data === null || data.format !== FILE_FORMAT || !Array.isArray(data.cards)){
 		return { error: UI_TEXT.importFormat };
 	}
-	if(data.version !== FILE_VERSION) return { error: UI_TEXT.importVersion };
+	if(data.formatVersion !== FILE_VERSION) return { error: UI_TEXT.importVersion };
 	if(data.cards.length === 0) return { error: UI_TEXT.importEmpty };
 
 	const cards = [];

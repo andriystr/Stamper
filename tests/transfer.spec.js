@@ -135,7 +135,7 @@ test('X3: one or several cards export in menu order, as minified JSON with name 
 	expect(text, 'the file has line breaks or spaces').toBe(JSON.stringify(JSON.parse(text)));
 	expect(JSON.parse(text)).toEqual({
 		format: 'stamper',
-		version: 1,
+		formatVersion: 1,
 		cards: [
 			{ name: 'Перша', texts: [{ title: 'Текст', body: 'Тіло тексту.' }] },
 			{ name: 'Третя', texts: [{ title: 'Текст', body: 'Тіло тексту.' }] },
@@ -158,7 +158,7 @@ test('X5: a valid file adds its cards to the end of the menu, with new ids and o
 
 	await importText(page, JSON.stringify({
 		format: 'stamper',
-		version: 1,
+		formatVersion: 1,
 		cards: [
 			{ name: 'Імпортована', texts: [{ title: 'Один', body: 'Текст один.' }, { title: 'Два', body: 'Текст два.' }] },
 			{ name: 'Ще одна', texts: [{ title: 'Т', body: 'Б' }] },
@@ -183,12 +183,12 @@ test('X6: an invalid file adds nothing and says what is wrong', async ({ page })
 
 	const cases = [
 		['not JSON', 'це не JSON', 'Файл не є JSON'],
-		['another format', JSON.stringify({ format: 'other', version: 1, cards: [] }), 'Stamper'],
-		['unsupported version', JSON.stringify({ format: 'stamper', version: 2, cards: [] }), 'не підтримується'],
-		['card without a name', JSON.stringify({ format: 'stamper', version: 1, cards: [{ name: '  ', texts: [{ title: 'a', body: 'b' }] }] }), 'Картка №1 не має назви'],
-		['card without texts', JSON.stringify({ format: 'stamper', version: 1, cards: [{ name: 'Ок', texts: [] }] }), 'Картка №1 не має жодного тексту'],
-		['text without a body', JSON.stringify({ format: 'stamper', version: 1, cards: [{ name: 'Ок', texts: [{ title: 'a' }] }] }), 'У тексті картки №1 немає назви або тіла'],
-		['second card broken', JSON.stringify({ format: 'stamper', version: 1, cards: [
+		['another format', JSON.stringify({ format: 'other', formatVersion: 1, cards: [] }), 'Stamper'],
+		['unsupported version', JSON.stringify({ format: 'stamper', formatVersion: 2, cards: [] }), 'не підтримується'],
+		['card without a name', JSON.stringify({ format: 'stamper', formatVersion: 1, cards: [{ name: '  ', texts: [{ title: 'a', body: 'b' }] }] }), 'Картка №1 не має назви'],
+		['card without texts', JSON.stringify({ format: 'stamper', formatVersion: 1, cards: [{ name: 'Ок', texts: [] }] }), 'Картка №1 не має жодного тексту'],
+		['text without a body', JSON.stringify({ format: 'stamper', formatVersion: 1, cards: [{ name: 'Ок', texts: [{ title: 'a' }] }] }), 'У тексті картки №1 немає назви або тіла'],
+		['second card broken', JSON.stringify({ format: 'stamper', formatVersion: 1, cards: [
 			{ name: 'Добра', texts: [{ title: 'a', body: 'b' }] },
 			{ texts: [{ title: 'a', body: 'b' }] },
 		] }), 'Картка №2 не має назви'],
@@ -205,7 +205,7 @@ test('X7: a file with no cards adds nothing and says so', async ({ page }) => {
 	await openMenu(page);
 	await openTransfer(page);
 
-	await importText(page, JSON.stringify({ format: 'stamper', version: 1, cards: [] }));
+	await importText(page, JSON.stringify({ format: 'stamper', formatVersion: 1, cards: [] }));
 	await expect(message(page)).toHaveText('У файлі немає карток.');
 	expect((await storedRecords(page)).length).toBe(3);
 });
