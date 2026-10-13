@@ -236,6 +236,14 @@ header h2 {
 	font-weight: 600;
 }
 
+/* Hint after several wrong attempts: the expected token, grey, right of the caret.
+   Drawn with ::after, so it is not part of the text. */
+.editor .text .hint::after {
+	content: attr(data-hint);
+	color: #94a3b8;
+	user-select: none;
+}
+
 /* Inserted text / teacher's notes: completely RED */
 .editor .text ins {
 	color: #dc2626;

@@ -165,10 +165,14 @@ const TOKEN_PATTERN = /[\p{L}\p{N}]+(?:['-]+[\p{L}\p{N}]+)*['-]*|[^\s\p{L}\p{N}]
 function tokenize(text) {
 	return [...canonical(text).matchAll(TOKEN_PATTERN)].map(match => ({
 		text: match[0],
+		raw: text.slice(match.index, match.index + match[0].length),
 		start: match.index,
 		end: match.index + match[0].length,
 	}));
 }
+
+// Wrong attempts on the same position before the learner gets a hint.
+const HINT_AFTER_WRONG_ATTEMPTS = 5;
 
 // Checks the finished tokens of `typed` against the expected tokens, in order.
 // A token is finished when another token follows it, or when the text ends with whitespace.
@@ -181,6 +185,7 @@ function checkTyped(expectedTokens, typed) {
 		if (!expected || expected.text !== actual[i].text) {
 			return {
 				ok: false,
+				index: i,
 				prefix: typed.slice(0, actual[i].start),
 				wrong: typed.slice(actual[i].start, actual[i].end),
 			};
@@ -606,6 +611,8 @@ class MemoryCheckView extends FrameView {
 
 		this.blocked = null;
 		this.expectedTokens = [];
+		this.attempts = { index: -1, count: 0 };
+		this.hint = null;
 
 		this.textElement.addEventListener('beforeinput', event => this.#onBeforeInput(event));
 		this.textElement.addEventListener('input', event => {
@@ -682,6 +689,7 @@ class MemoryCheckView extends FrameView {
 	// While a wrong token is shown, typing is blocked; only Backspace works and removes the whole token.
 	// Outside that state, the caret must be at the end: the check only looks at the end of the text.
 	#onBeforeInput(event){
+		if(this.hint) this.#clearHint();
 		if(event.isComposing) return;
 
 		if(this.blocked){
@@ -707,7 +715,15 @@ class MemoryCheckView extends FrameView {
 		const result = checkTyped(this.expectedTokens, this.textElement.innerText);
 		if(result.ok) return;
 
-		this.blocked = { prefix: result.prefix, wrong: result.wrong };
+		if(this.attempts.index !== result.index) this.attempts = { index: result.index, count: 0 };
+		this.attempts.count += 1;
+
+		this.blocked = {
+			prefix: result.prefix,
+			wrong: result.wrong,
+			index: result.index,
+			hintDue: this.attempts.count >= HINT_AFTER_WRONG_ATTEMPTS,
+		};
 		this.#renderBlocked();
 		this.#vibrate();
 	}
@@ -722,10 +738,30 @@ class MemoryCheckView extends FrameView {
 	}
 
 	#unblock(){
-		const prefix = this.blocked.prefix;
+		const { prefix, index, hintDue } = this.blocked;
 		this.blocked = null;
 		this.textElement.textContent = prefix;
+
+		const expected = this.expectedTokens[index];
+		if(hintDue && expected){
+			this.attempts.count = 0;
+			this.hint = expected.raw;
+			this.#renderHint();
+		}
 		this.#placeCaretAtEnd();
+	}
+
+	// The hint is a pseudo-element: it is not text, so it is never typed, checked or copied.
+	#renderHint(){
+		const hintElem = document.createElement('span');
+		hintElem.classList.add('hint');
+		hintElem.dataset.hint = this.hint;
+		this.textElement.appendChild(hintElem);
+	}
+
+	#clearHint(){
+		this.hint = null;
+		this.textElement.querySelector('.hint')?.remove();
 	}
 
 	#caretAtEnd(){
@@ -743,8 +779,14 @@ class MemoryCheckView extends FrameView {
 
 	#placeCaretAtEnd(){
 		const range = document.createRange();
-		range.selectNodeContents(this.textElement);
-		range.collapse(false);
+		const hintElem = this.textElement.querySelector('.hint');
+		if(hintElem){
+			range.setStartBefore(hintElem);
+			range.collapse(true);
+		} else {
+			range.selectNodeContents(this.textElement);
+			range.collapse(false);
+		}
 
 		const selection = getSelection();
 		selection.removeAllRanges();
@@ -763,6 +805,8 @@ class MemoryCheckView extends FrameView {
 		this.state = 'text';
 		this.expectedTokens = tokenize(text);
 		this.blocked = null;
+		this.attempts = { index: -1, count: 0 };
+		this.hint = null;
 		this.#deactiveEditor();
 		this.backTextElement.classList.remove('hidden');
 		this.nextTextElement.classList.remove('hidden');
