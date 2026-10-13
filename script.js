@@ -152,6 +152,16 @@ function detectReplacements(groupedDiff, maxLengthDiff = 10) {
 
 // -------------------------------- End Utils --------------------------------
 
+// ================================== Texts ==================================
+
+const UI_TEXT = {
+	nameRequired: 'Назва картки не може бути порожньою.',
+	textRequired: 'Додайте хоча б один текст, перш ніж зберегти картку.',
+	noTextsInCard: 'У цій картці немає текстів. Відкрийте редактор і додайте текст.',
+};
+
+// -------------------------------- End Texts --------------------------------
+
 // ================================== Model ==================================
 
 class Text {
@@ -393,12 +403,19 @@ class MenuView extends FrameView {
 			const cardElem = document.createElement('div');
 			cardElem.classList.add('card');
 			cardElem.dataset.id = card.id;
-			cardElem.innerHTML = `
-				<h3>${card.name}</h3>
-				<div class="controls">
-					<button class="action-edit-text">Edit</button>
-				</div>
-			`;
+
+			const nameElem = document.createElement('h3');
+			nameElem.textContent = card.name;
+
+			const controlsElem = document.createElement('div');
+			controlsElem.classList.add('controls');
+
+			const editButtonElem = document.createElement('button');
+			editButtonElem.classList.add('action-edit-text');
+			editButtonElem.textContent = 'Edit';
+
+			controlsElem.appendChild(editButtonElem);
+			cardElem.append(nameElem, controlsElem);
 			return cardElem;
 		});
 
@@ -425,6 +442,7 @@ class CardEditorView extends FrameView {
 		super(document.querySelector('.frame.edit-card').closest('.frame-wrapper'));
 		this.cardNameElement = this.element.querySelector('.card-name');
 		this.textListElement = this.element.querySelector('.text-list');
+		this.messageElement = this.element.querySelector('.form-message');
 		this.addButtonElement = this.element.querySelector('.action-add');
 		this.saveButtonElement = this.element.querySelector('.action-save');
 
@@ -465,15 +483,34 @@ class CardEditorView extends FrameView {
 		this.onSaveClickHandler = callback;
 	}
 
+	showMessage(text = ''){
+		this.messageElement.textContent = text;
+	}
+
 	#newTextElement(textObj){
 		const textEditorElem = document.createElement('div');
 		textEditorElem.classList.add('editor');
-		textEditorElem.innerHTML = `
-			<div class="title">
-				<h3 class="title" contenteditable="true">${textObj.title}</h3>
-				<button class="action-delete-text">Delete</button>
-			</div>
-			<div class="text" contenteditable="true">${textObj.body}</div>`;
+
+		const titleElem = document.createElement('div');
+		titleElem.classList.add('title');
+
+		const titleTextElem = document.createElement('h3');
+		titleTextElem.classList.add('title');
+		titleTextElem.contentEditable = 'true';
+		titleTextElem.textContent = textObj.title;
+
+		const deleteButtonElem = document.createElement('button');
+		deleteButtonElem.classList.add('action-delete-text');
+		deleteButtonElem.textContent = 'Delete';
+
+		titleElem.append(titleTextElem, deleteButtonElem);
+
+		const bodyElem = document.createElement('div');
+		bodyElem.classList.add('text');
+		bodyElem.contentEditable = 'true';
+		bodyElem.textContent = textObj.body;
+
+		textEditorElem.append(titleElem, bodyElem);
 		return textEditorElem;
 	}
 
@@ -491,6 +528,7 @@ class CardEditorView extends FrameView {
 			delete this.textListElement.dataset.id;
 		}
 
+		this.showMessage('');
 		this.cardNameElement.innerText = card.name;
 		const textEditorElems = card.texts.map(textObj => this.#newTextElement(textObj));
 		this.textListElement.replaceChildren(...textEditorElems);
@@ -509,7 +547,7 @@ class MemoryCheckView extends FrameView {
 		this.nextTextElement = this.element.querySelector('.action-next-text');
 
 		this.textElement.addEventListener('click', event => {
-			if(!this.textElement.attributes.contenteditable && this.state != 'corects'){
+			if(this.state === 'text' && !this.textElement.attributes.contenteditable){
 				this.#activeEditor();
 				this.textElement.innerText = '';
 			}
@@ -569,9 +607,21 @@ class MemoryCheckView extends FrameView {
 	renderText(text){
 		this.state = 'text';
 		this.#deactiveEditor();
+		this.backTextElement.classList.remove('hidden');
+		this.nextTextElement.classList.remove('hidden');
 		this.checkTextElement.classList.remove('hidden');
 		this.againTextElement.classList.add('hidden');
 		this.textElement.innerText = text;
+	}
+
+	renderEmpty(message){
+		this.state = 'empty';
+		this.#deactiveEditor();
+		this.backTextElement.classList.add('hidden');
+		this.nextTextElement.classList.add('hidden');
+		this.checkTextElement.classList.add('hidden');
+		this.againTextElement.classList.add('hidden');
+		this.textElement.innerText = message;
 	}
 
 	renderCorects(difference){
@@ -662,9 +712,19 @@ class CardEditorController {
 		this.view = new CardEditorView();
 
 		this.view.onSaveButtonClick(async (card) => {
+			const problem = this.#validate(card);
+			this.view.showMessage(problem ?? '');
+			if(problem) return;
+
 			await this.app.model.saveCard(card);
 			await this.app.toMenu();
 		});
+	}
+
+	#validate(card){
+		if(card.name.trim() === '') return UI_TEXT.nameRequired;
+		if(card.texts.length === 0) return UI_TEXT.textRequired;
+		return null;
 	}
 
 	async active(){
@@ -757,6 +817,12 @@ class MemoryCheckController {
 	async showCard(id){
 		this.currentCard = await this.app.model.get(id);
 		this.currentTextIndex = 0;
+
+		if(this.currentCard.texts.length === 0){
+			this.view.setTitle(this.currentCard.name);
+			this.view.renderEmpty(UI_TEXT.noTextsInCard);
+			return;
+		}
 		this.#renderText(this.currentCard.texts[this.currentTextIndex]);
 	}
 }

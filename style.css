@@ -119,6 +119,18 @@ header h2 {
 }
 
 
+/* Validation message on the card editor screen (empty when there is nothing to say) */
+.form-message {
+	color: #dc2626;
+	font-size: 0.95rem;
+	font-weight: 500;
+	flex-shrink: 0;
+}
+
+.form-message:empty {
+	display: none;
+}
+
 /* Scroll container for multiple editors */
 .text-list {
 	display: flex;

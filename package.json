@@ -1,0 +1,13 @@
+{
+  "name": "stamper",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A memory trainer in the browser: type a text from memory and see the differences.",
+  "license": "MIT",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  }
+}
