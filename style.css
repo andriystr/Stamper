@@ -200,12 +200,6 @@ header h2 {
 	background-color: #f1f5f9;
 }
 
-/* Complete text is locked: it looks like the opening view (white), also while focused */
-.editor .text.locked,
-.editor .text.locked:focus {
-	background-color: #ffffff;
-}
-
 /* If the field is the only one on the screen, allow it to take maximum space */
 .frame > .editor .text {
 	flex-grow: 1;

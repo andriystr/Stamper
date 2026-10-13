@@ -66,9 +66,10 @@ test('V4: apostrophe and dash variants are equal', async ({ page }) => {
 	await openTrainer(page, 'Пам’ять Слово-слово.');
 	// The learner uses a plain apostrophe and an en dash; the expected text uses ’ and -.
 	await page.keyboard.type("Пам'ять Слово–слово.");
-	// The whole text is typed with the other variants: no wrong token, and the text is complete (locked).
+	// The whole text is typed with the other variants: no wrong token, and the shown text comes back.
 	await expect(wrongToken(page)).toHaveCount(0);
-	await expect(trainerText(page)).toHaveClass(/locked/);
+	// Complete: the text comes back as shown text, not as an input field.
+	await expect(trainerText(page)).not.toHaveAttribute('contenteditable', /.*/);
 	await expect(trainerText(page)).toHaveText('Пам’ять Слово-слово.');
 });
 

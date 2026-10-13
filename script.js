@@ -468,7 +468,7 @@ class MemoryCheckView extends FrameView {
 		this.nextTextElement = this.element.querySelector('.action-next-text');
 		this.progressElement = this.element.querySelector('.progress');
 
-		// 'text': the opening view; 'typing': the learner types; 'done': complete and locked; 'empty': no texts
+		// 'text': the text is shown, as at opening; 'typing': the learner types; 'empty': no texts
 		this.state = 'text';
 		this.expectedText = '';
 		this.expectedTokens = [];
@@ -521,7 +521,6 @@ class MemoryCheckView extends FrameView {
 		this.attempts = { index: -1, count: 0 };
 		this.hint = null;
 		this.#deactiveEditor();
-		this.textElement.classList.remove('locked');
 		this.backTextElement.classList.remove('hidden');
 		this.nextTextElement.classList.remove('hidden');
 		this.textElement.innerText = text;
@@ -531,45 +530,33 @@ class MemoryCheckView extends FrameView {
 		this.state = 'empty';
 		this.blocked = null;
 		this.#deactiveEditor();
-		this.textElement.classList.remove('locked');
 		this.backTextElement.classList.add('hidden');
 		this.nextTextElement.classList.add('hidden');
 		this.progressElement.textContent = '';
 		this.textElement.innerText = message;
 	}
 
+	// A click on the shown text starts typing: the field is cleared, and the attempts start from zero.
 	#startTyping(){
 		this.state = 'typing';
+		this.attempts = { index: -1, count: 0 };
+		this.hint = null;
 		this.textElement.setAttribute('contenteditable', true);
 		this.textElement.textContent = '';
 	}
 
-	// Complete text: shown as at opening and locked. Backspace clears it and typing starts again.
-	// The field stays focused, so on a phone Backspace works with the keyboard open.
+	// Complete text: back to the view shown at opening (the original text, not editable).
 	#finish(){
-		this.state = 'done';
+		this.state = 'text';
 		this.blocked = null;
-		this.textElement.classList.add('locked');
+		this.hint = null;
+		this.#deactiveEditor();
 		this.textElement.textContent = this.expectedText;
-		this.#placeCaretAtEnd();
-	}
-
-	#restart(){
-		this.state = 'typing';
-		this.textElement.classList.remove('locked');
-		this.attempts = { index: -1, count: 0 };
-		this.textElement.replaceChildren();
-		this.#placeCaretAtEnd();
 	}
 
 	// While a wrong token is shown, typing is blocked; only Backspace works and removes the whole token.
 	// Outside that state, the caret must be at the end: the check only looks at the end of the text.
 	#onBeforeInput(event){
-		if(this.state === 'done'){
-			event.preventDefault();
-			if(event.inputType.startsWith('delete')) this.#restart();
-			return;
-		}
 		if(this.state !== 'typing'){
 			event.preventDefault();
 			return;

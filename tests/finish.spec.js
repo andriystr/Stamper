@@ -1,9 +1,10 @@
-// Finish typing: no Check button, locked text after completion.
+// Two states in Memory check: the text is shown, or the learner types.
 const { test, expect } = require('@playwright/test');
 
 const activeMenu = page => page.locator('.frame-wrapper.active .frame.menu');
 const activeTrainer = page => page.locator('.frame-wrapper.active .frame.trainer');
 const trainerText = page => activeTrainer(page).locator('.text');
+const isTyping = page => trainerText(page).evaluate(el => el.hasAttribute('contenteditable'));
 
 async function openTrainer(page, texts) {
 	await page.goto('/');
@@ -25,7 +26,6 @@ async function openTrainer(page, texts) {
 	await page.reload();
 	await activeMenu(page).locator('.card').first().click();
 	await expect(activeTrainer(page)).toBeVisible();
-	await trainerText(page).click();
 }
 
 test('F1: the trainer has no Check or Again button', async ({ page }) => {
@@ -35,50 +35,62 @@ test('F1: the trainer has no Check or Again button', async ({ page }) => {
 	await expect(activeTrainer(page).locator('.action-again-text')).toHaveCount(0);
 });
 
-test('F2: complete text is shown as at opening and locked', async ({ page }) => {
+test('F2: the text opens as shown text, not as an input field', async ({ page }) => {
 	await openTrainer(page, [{ title: 'Т', body: 'Перший текст.' }]);
-	await page.keyboard.type('Перший текст.');
 
-	await expect(trainerText(page)).toHaveClass(/locked/);
 	await expect(trainerText(page)).toHaveText('Перший текст.');
-
-	await page.keyboard.type('ще');
-	await expect(trainerText(page)).toHaveText('Перший текст.');
-	await expect(trainerText(page)).toHaveClass(/locked/);
+	expect(await isTyping(page)).toBe(false);
 });
 
-test('F3: Backspace in the locked state clears the text and typing starts again', async ({ page }) => {
+test('F3: a click on the shown text starts typing with an empty field', async ({ page }) => {
 	await openTrainer(page, [{ title: 'Т', body: 'Перший текст.' }]);
-	await page.keyboard.type('Перший текст.');
-	await expect(trainerText(page)).toHaveClass(/locked/);
+	await trainerText(page).click();
 
-	await page.keyboard.press('Backspace');
-	await expect(trainerText(page)).not.toHaveClass(/locked/);
+	expect(await isTyping(page)).toBe(true);
 	await expect(trainerText(page)).toHaveText('');
-
-	await page.keyboard.type('Перший текст.');
-	await expect(trainerText(page)).toHaveClass(/locked/);
 });
 
-test('F4: a text that ends with a word is locked only after a following space', async ({ page }) => {
+test('F4: when the whole text is typed, the shown text comes back', async ({ page }) => {
+	await openTrainer(page, [{ title: 'Т', body: 'Перший текст.' }]);
+	await trainerText(page).click();
+	await page.keyboard.type('Перший текст.');
+
+	expect(await isTyping(page)).toBe(false);
+	await expect(trainerText(page)).toHaveText('Перший текст.');
+});
+
+test('F4b: the shown text comes back again after a second typing', async ({ page }) => {
+	await openTrainer(page, [{ title: 'Т', body: 'Перший текст.' }]);
+	await trainerText(page).click();
+	await page.keyboard.type('Перший текст.');
+	expect(await isTyping(page)).toBe(false);
+
+	await trainerText(page).click();
+	await expect(trainerText(page)).toHaveText('');
+	await page.keyboard.type('Перший текст.');
+	expect(await isTyping(page)).toBe(false);
+	await expect(trainerText(page)).toHaveText('Перший текст.');
+});
+
+test('F5: a text that ends with a word comes back after a following space', async ({ page }) => {
 	await openTrainer(page, [{ title: 'Т', body: 'Перший текст' }]);
+	await trainerText(page).click();
 	await page.keyboard.type('Перший текст');
-	await expect(trainerText(page)).not.toHaveClass(/locked/);
+	expect(await isTyping(page)).toBe(true);
 
 	await page.keyboard.type(' ');
-	await expect(trainerText(page)).toHaveClass(/locked/);
+	expect(await isTyping(page)).toBe(false);
+	await expect(trainerText(page)).toHaveText('Перший текст');
 });
 
-test('F5: Next shows the next text in the opening state', async ({ page }) => {
+test('F6: Next shows the next text as shown text', async ({ page }) => {
 	await openTrainer(page, [
 		{ title: 'Перший', body: 'Перший текст.' },
 		{ title: 'Другий', body: 'Другий текст.' },
 	]);
-	await page.keyboard.type('Перший текст.');
-	await expect(trainerText(page)).toHaveClass(/locked/);
-
 	await activeTrainer(page).locator('.action-next-text').click();
+
 	await expect(activeTrainer(page).locator('.title h3')).toHaveText('Другий');
-	await expect(trainerText(page)).not.toHaveClass(/locked/);
 	await expect(trainerText(page)).toHaveText('Другий текст.');
+	expect(await isTyping(page)).toBe(false);
 });
