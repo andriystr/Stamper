@@ -132,7 +132,8 @@ button:active {
 /* Primary: solid */
 .action-next-text,
 .action-add-text,
-.action-save {
+.action-save,
+.action-export {
 	background-color: var(--primary-600);
 	color: var(--white);
 	box-shadow: var(--shadow-1);
@@ -140,14 +141,17 @@ button:active {
 
 .action-next-text:hover,
 .action-add-text:hover,
-.action-save:hover {
+.action-save:hover,
+.action-export:hover {
 	background-color: var(--primary-700);
 }
 
 /* Secondary: white with a border */
 .action-back-text,
 .action-add,
-.action-edit-text {
+.action-edit-text,
+.action-select-all,
+.action-import {
 	background-color: var(--white);
 	border-color: var(--grey-300);
 	color: var(--grey-800);
@@ -155,7 +159,9 @@ button:active {
 
 .action-back-text:hover,
 .action-add:hover,
-.action-edit-text:hover {
+.action-edit-text:hover,
+.action-select-all:hover,
+.action-import:hover {
 	background-color: var(--grey-100);
 }
 
@@ -228,6 +234,11 @@ button.left {
 }
 
 button.right {
+	color: var(--primary-600);
+}
+
+/* The red link is for Delete only */
+button.right.destructive {
 	color: var(--danger-600);
 }
 
@@ -462,6 +473,11 @@ button.right {
 	display: none;
 }
 
+.form-message.success {
+	color: var(--primary-700);
+	background-color: var(--primary-50);
+}
+
 .frame.edit-card > .controls {
 	justify-content: stretch;
 }
@@ -660,6 +676,102 @@ button.right {
 	.dialog-actions button {
 		flex: 0 0 auto;
 	}
+}
+
+/* ==========================================================================
+	9c. TRANSFER: import and export of cards
+	========================================================================== */
+.transfer-section {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+}
+
+/* The export list takes the free height; the import block keeps its size */
+.transfer-section.export {
+	flex: 1 1 auto;
+	min-height: 0;
+}
+
+.transfer-section.import {
+	flex-shrink: 0;
+}
+
+.transfer-section h3 {
+	font-size: var(--text-lg);
+	font-weight: 600;
+	color: var(--grey-900);
+}
+
+.transfer-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: var(--space-3);
+}
+
+.transfer-count,
+.transfer-hint {
+	font-size: var(--text-sm);
+	color: var(--grey-600);
+}
+
+.transfer-section.export > .action-select-all {
+	align-self: flex-start;
+}
+
+.transfer-list {
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	overflow-y: auto;
+}
+
+.transfer-item {
+	flex-shrink: 0;
+	min-height: 44px;
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	padding: var(--space-2) var(--space-3);
+	background-color: var(--grey-50);
+	border: 1px solid var(--grey-200);
+	border-radius: var(--radius);
+	cursor: pointer;
+}
+
+.transfer-item input {
+	flex-shrink: 0;
+	width: 24px;
+	height: 24px;
+	accent-color: var(--primary-600);
+	cursor: pointer;
+}
+
+.transfer-name {
+	flex: 1;
+	min-width: 0;
+	font-weight: 600;
+	color: var(--grey-800);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.transfer-meta {
+	flex-shrink: 0;
+	font-size: var(--text-sm);
+	color: var(--grey-600);
+}
+
+.frame.transfer > .controls {
+	justify-content: stretch;
+}
+
+.frame.transfer > .controls button {
+	flex: 1;
 }
 
 /* ==========================================================================

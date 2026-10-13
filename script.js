@@ -89,6 +89,22 @@ const UI_TEXT = {
 	noTextsInCard: 'У цій картці немає текстів. Відкрийте редактор і додайте текст.',
 	noCards: 'Ще немає карток. Натисніть «Додати», щоб створити першу.',
 	moveCard: 'Перетягнути картку',
+	transfer: 'Імпорт/експорт',
+	transferTitle: 'Імпорт і експорт',
+	selectAll: 'Вибрати всі',
+	clearSelection: 'Зняти вибір',
+	selectedCount: (selected, total) => `Вибрано: ${selected} з ${total}`,
+	exportButton: 'Експортувати',
+	transferEmpty: 'Ще немає карток для експорту.',
+	importButton: 'Імпортувати з файлу',
+	importNotJson: 'Файл не є JSON.',
+	importFormat: 'Файл не схожий на експорт Stamper.',
+	importVersion: 'Ця версія файлу не підтримується.',
+	importEmpty: 'У файлі немає карток.',
+	importCardName: number => `Картка №${number} не має назви.`,
+	importCardTexts: number => `Картка №${number} не має жодного тексту.`,
+	importTextFields: number => `У тексті картки №${number} немає назви або тіла.`,
+	importDone: count => `Імпортовано карток: ${count}.`,
 };
 
 // -------------------------------- End Texts --------------------------------
@@ -265,6 +281,19 @@ class TrainerModel {
 		return this.cardRepository.setOrder(ids);
 	}
 
+	// All cards with their texts, in menu order (for export).
+	async getAllCards(){
+		const cards = await this.cardRepository.collect(value => value);
+		return cards.sort(byOrder);
+	}
+
+	// Each card is saved as new: it gets a new id and goes last.
+	async importCards(cards){
+		for(const card of cards){
+			await this.saveCard(new Card(undefined, card.name, card.texts));
+		}
+	}
+
 	async #nextOrder(){
 		const orders = await this.cardRepository.collect(value => value.order ?? -1);
 		return Math.max(-1, ...orders) + 1;
@@ -281,6 +310,59 @@ class TrainerModel {
 }
 
 // -------------------------------- End Model --------------------------------
+
+// ================================== Files ==================================
+
+const FILE_FORMAT = 'stamper';
+const FILE_VERSION = 1;
+const EXPORT_FILE_NAME = 'stamper-cards.json';
+
+// The file holds names and texts only: ids and order are given again on import.
+function exportCards(cards){
+	return JSON.stringify({
+		format: FILE_FORMAT,
+		version: FILE_VERSION,
+		cards: cards.map(card => ({
+			name: card.name,
+			texts: card.texts.map(text => ({ title: text.title, body: text.body })),
+		})),
+	});
+}
+
+// Returns {cards} when the whole file is valid, or {error} with the message for the learner.
+// A file with one bad card adds nothing.
+function parseCardsFile(text){
+	let data;
+	try {
+		data = JSON.parse(text);
+	} catch {
+		return { error: UI_TEXT.importNotJson };
+	}
+
+	if(typeof data !== 'object' || data === null || data.format !== FILE_FORMAT || !Array.isArray(data.cards)){
+		return { error: UI_TEXT.importFormat };
+	}
+	if(data.version !== FILE_VERSION) return { error: UI_TEXT.importVersion };
+	if(data.cards.length === 0) return { error: UI_TEXT.importEmpty };
+
+	const cards = [];
+	for(let i = 0; i < data.cards.length; i++){
+		const number = i + 1;
+		const card = data.cards[i];
+		if(typeof card?.name !== 'string' || card.name.trim() === '') return { error: UI_TEXT.importCardName(number) };
+		if(!Array.isArray(card.texts) || card.texts.length === 0) return { error: UI_TEXT.importCardTexts(number) };
+		if(!card.texts.every(text => typeof text?.title === 'string' && typeof text?.body === 'string')){
+			return { error: UI_TEXT.importTextFields(number) };
+		}
+		cards.push({
+			name: card.name.trim(),
+			texts: card.texts.map(text => ({ title: text.title, body: text.body })),
+		});
+	}
+	return { cards };
+}
+
+// -------------------------------- End Files --------------------------------
 
 // ================================== View ===================================
 
@@ -318,8 +400,10 @@ class PanelView {
 		this.onRightClickHandler = () => {};
 	}
 
-	activeRightButton(text, callback){
+	// destructive: the red link (Delete); other actions are neutral.
+	activeRightButton(text, callback, destructive = true){
 		this.rightButtonElement.innerText = text;
+		this.rightButtonElement.classList.toggle('destructive', destructive);
 		this.rightButtonElement.classList.remove('hidden');
 		this.onRightClickHandler = callback;
 	}
@@ -603,6 +687,113 @@ class MenuView extends FrameView {
 		event.preventDefault();
 		handleElem.focus();
 		this.cardsReorderedHandler(this.#cardIds());
+	}
+}
+
+class TransferView extends FrameView {
+	constructor(){
+		super(document.querySelector('.frame.transfer').closest('.frame-wrapper'));
+		this.listElement = this.element.querySelector('.transfer-list');
+		this.countElement = this.element.querySelector('.transfer-count');
+		this.selectAllButtonElement = this.element.querySelector('.action-select-all');
+		this.importButtonElement = this.element.querySelector('.action-import');
+		this.fileInputElement = this.element.querySelector('input[type=file]');
+		this.exportButtonElement = this.element.querySelector('.action-export');
+		this.messageElement = this.element.querySelector('.form-message');
+
+		this.exportClickHandler = async () => {};
+		this.fileChosenHandler = async (file) => {};
+
+		this.selectAllButtonElement.addEventListener('click', () => this.#toggleAll());
+		this.listElement.addEventListener('change', () => this.#updateSelection());
+		this.exportButtonElement.addEventListener('click', async () => await this.exportClickHandler());
+		this.importButtonElement.addEventListener('click', () => this.fileInputElement.click());
+		this.fileInputElement.addEventListener('change', async () => {
+			const file = this.fileInputElement.files[0];
+			// Reset, so that choosing the same file again also starts an import.
+			this.fileInputElement.value = '';
+			if(file) await this.fileChosenHandler(file);
+		});
+	}
+
+	onExportClick(callback){
+		this.exportClickHandler = callback;
+	}
+
+	onFileChosen(callback){
+		this.fileChosenHandler = callback;
+	}
+
+	renderCards(cards){
+		this.messageElement.textContent = '';
+		this.messageElement.classList.remove('success');
+
+		if(cards.length === 0){
+			const emptyElem = document.createElement('p');
+			emptyElem.classList.add('empty-state');
+			emptyElem.textContent = UI_TEXT.transferEmpty;
+			this.listElement.replaceChildren(emptyElem);
+		} else {
+			const itemElems = cards.map(card => {
+				const labelElem = document.createElement('label');
+				labelElem.classList.add('transfer-item');
+
+				const checkElem = document.createElement('input');
+				checkElem.type = 'checkbox';
+				checkElem.dataset.id = card.id;
+
+				const nameElem = document.createElement('span');
+				nameElem.classList.add('transfer-name');
+				nameElem.textContent = card.name;
+
+				const metaElem = document.createElement('span');
+				metaElem.classList.add('transfer-meta');
+				metaElem.textContent = UI_TEXT.textCount(card.texts.length);
+
+				labelElem.append(checkElem, nameElem, metaElem);
+				return labelElem;
+			});
+			this.listElement.replaceChildren(...itemElems);
+		}
+		this.#updateSelection();
+	}
+
+	selectedIds(){
+		return [...this.listElement.querySelectorAll('input[type=checkbox]:checked')].map(box => +box.dataset.id);
+	}
+
+	showMessage(text = '', success = false){
+		this.messageElement.textContent = text;
+		this.messageElement.classList.toggle('success', success);
+	}
+
+	download(fileName, text){
+		const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = fileName;
+		link.click();
+		setTimeout(() => URL.revokeObjectURL(url), 1000);
+	}
+
+	#boxes(){
+		return [...this.listElement.querySelectorAll('input[type=checkbox]')];
+	}
+
+	#toggleAll(){
+		const boxes = this.#boxes();
+		const allChecked = boxes.every(box => box.checked);
+		boxes.forEach(box => { box.checked = !allChecked; });
+		this.#updateSelection();
+	}
+
+	#updateSelection(){
+		const boxes = this.#boxes();
+		const selected = boxes.filter(box => box.checked).length;
+		this.countElement.textContent = UI_TEXT.selectedCount(selected, boxes.length);
+		this.selectAllButtonElement.textContent = boxes.length > 0 && selected === boxes.length ? UI_TEXT.clearSelection : UI_TEXT.selectAll;
+		this.selectAllButtonElement.disabled = boxes.length === 0;
+		this.exportButtonElement.disabled = selected === 0;
 	}
 }
 
@@ -968,6 +1159,48 @@ class MenuController {
 
 		this.app.pannel.setTitle(UI_TEXT.menuTitle);
 		this.app.pannel.deactiveLeftButton();
+		this.app.pannel.activeRightButton(UI_TEXT.transfer, async () => await this.app.toTransfer(), false);
+	}
+
+	async deactive(){
+		this.view.hide();
+	}
+}
+
+class TransferController {
+	constructor(app){
+		this.app = app;
+		this.view = new TransferView();
+
+		this.view.onExportClick(async () => {
+			const ids = this.view.selectedIds();
+			const cards = (await this.app.model.getAllCards()).filter(card => ids.includes(card.id));
+			this.view.download(EXPORT_FILE_NAME, exportCards(cards));
+		});
+
+		this.view.onFileChosen(async file => {
+			const result = parseCardsFile(await file.text());
+			if(result.error){
+				this.view.showMessage(result.error);
+				return;
+			}
+
+			await this.app.model.importCards(result.cards);
+			await this.#renderCards();
+			this.view.showMessage(UI_TEXT.importDone(result.cards.length), true);
+		});
+	}
+
+	async #renderCards(){
+		this.view.renderCards(await this.app.model.getAllCards());
+	}
+
+	async active(){
+		await this.#renderCards();
+		this.view.show();
+
+		this.app.pannel.setTitle(UI_TEXT.transferTitle);
+		this.app.pannel.activeLeftButton(UI_TEXT.back, async () => await this.app.toMenu());
 		this.app.pannel.deactiveRightButton();
 	}
 
@@ -1103,6 +1336,7 @@ class App {
 		this.menu = new MenuController(this);
 		this.cardEditor = new CardEditorController(this);
 		this.memoryCheck = new MemoryCheckController(this);
+		this.transfer = new TransferController(this);
 	}
 
 	async start(){
@@ -1125,6 +1359,10 @@ class App {
 	async toCardEditor(id = null){
 		await this.cardEditor.showCard(id);
 		await this.#switchTo(this.cardEditor);
+	}
+
+	async toTransfer(){
+		await this.#switchTo(this.transfer);
 	}
 
 	async toMemoryCheck(id){

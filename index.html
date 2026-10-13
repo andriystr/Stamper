@@ -69,6 +69,28 @@
 			</div>
 		</div>
 	</div>
+	<div class="frame-wrapper">
+		<div class="frame transfer">
+			<section class="transfer-section export">
+				<div class="transfer-head">
+					<h3>Експорт</h3>
+					<span class="transfer-count"></span>
+				</div>
+				<button class="action-select-all" type="button">Вибрати всі</button>
+				<div class="transfer-list"></div>
+			</section>
+			<section class="transfer-section import">
+				<h3>Імпорт</h3>
+				<p class="transfer-hint">Картки з файлу додаються в кінець меню. Наявні картки не змінюються.</p>
+				<button class="action-import" type="button">Імпортувати з файлу</button>
+				<input type="file" accept=".json,application/json" hidden>
+			</section>
+			<p class="form-message" role="alert"></p>
+			<div class="controls">
+				<button class="action-export" type="button">Експортувати</button>
+			</div>
+		</div>
+	</div>
 	<div class="dialog-backdrop hidden">
 		<div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="dialog-title" aria-describedby="dialog-message">
 			<h2 class="dialog-title" id="dialog-title"></h2>
