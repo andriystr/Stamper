@@ -37,9 +37,11 @@ pre {
 header {
 	width: 100%;
 	max-width: 1000px;
-	display: flex;
+	/* Left and right side get equal columns, so the title stays centred
+	   and a long button label cannot push the header out of its padding */
+	display: grid;
+	grid-template-columns: 1fr auto 1fr;
 	align-items: center;
-	justify-content: space-between;
 	padding: 16px 24px;
 	background-color: #ffffff;
 	border-radius: 12px;
@@ -68,10 +70,15 @@ header h2 {
 	font-size: 1.25rem;
 	font-weight: 600;
 	color: #1e293b;
+	text-align: center;
+}
+
+.wrapper-left {
+	justify-self: start;
 }
 
 .wrapper-right {
-	width: 50px; /* Increased slightly for visual balance with the Back button */
+	justify-self: end;
 }
 
 /* ==========================================================================
@@ -386,4 +393,12 @@ button:active {
 .trainer .controls {
 	justify-content: space-evenly;
 	flex-wrap: wrap;
+}
+
+/* On phones the four Memory check buttons form an even 2 × 2 grid */
+@media (max-width: 600px) {
+	.trainer .controls {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+	}
 }
