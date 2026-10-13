@@ -230,6 +230,13 @@ header h2 {
 	text-decoration: underline solid red;
 }
 
+/* Wrong space typed where the text has none: the space is empty, so the background is red */
+.editor .text .wrong-space {
+	display: inline-block;
+	min-width: 0.5em;
+	background-color: #ef4444;
+}
+
 /* Wrong token typed in Memory check: red text, typing is blocked until Backspace */
 .editor .text .wrong {
 	color: #dc2626;

@@ -158,41 +158,51 @@ function canonical(text) {
 	return text.replace(APOSTROPHE_VARIANTS, "'").replace(DASH_VARIANTS, '-');
 }
 
-// A token is a word (letters and digits, joined by an apostrophe or a dash),
-// or one other visible character. Whitespace only separates tokens.
-const TOKEN_PATTERN = /[\p{L}\p{N}]+(?:['-]+[\p{L}\p{N}]+)*['-]*|[^\s\p{L}\p{N}]/gu;
+// A token is a run of whitespace (one space token, whatever its length),
+// a word (letters and digits, joined by an apostrophe or a dash),
+// or one other visible character.
+const TOKEN_PATTERN = /\s+|[\p{L}\p{N}]+(?:['-]+[\p{L}\p{N}]+)*['-]*|[^\s\p{L}\p{N}]/gu;
 
 function tokenize(text) {
-	return [...canonical(text).matchAll(TOKEN_PATTERN)].map(match => ({
-		text: match[0],
-		raw: text.slice(match.index, match.index + match[0].length),
-		start: match.index,
-		end: match.index + match[0].length,
-	}));
+	return [...canonical(text).matchAll(TOKEN_PATTERN)].map(match => {
+		const isSpace = /^\s/.test(match[0]);
+		return {
+			text: isSpace ? ' ' : match[0],
+			raw: text.slice(match.index, match.index + match[0].length),
+			start: match.index,
+			end: match.index + match[0].length,
+		};
+	});
 }
 
-// Wrong attempts on the same position before the learner gets a hint.
-const HINT_AFTER_WRONG_ATTEMPTS = 5;
-
-// Checks the finished tokens of `typed` against the expected tokens, in order.
-// A token is finished when another token follows it, or when the text ends with whitespace.
+// Checks the typed tokens against the expected tokens, in order.
+// A token is finished when another token follows it, or at once when it is a space.
+// A space after the last expected token is allowed; any other extra token is wrong.
 function checkTyped(expectedTokens, typed) {
 	const actual = tokenize(typed);
-	const finished = /\s$/.test(typed) ? actual.length : actual.length - 1;
+	const last = actual.length - 1;
 
-	for (let i = 0; i < finished; i++) {
+	for (let i = 0; i <= last; i++) {
+		const token = actual[i];
+		const isSpace = token.text === ' ';
+		if (i === last && !isSpace) break;
+
 		const expected = expectedTokens[i];
-		if (!expected || expected.text !== actual[i].text) {
+		if (!expected && isSpace) continue;
+		if (!expected || expected.text !== token.text) {
 			return {
 				ok: false,
 				index: i,
-				prefix: typed.slice(0, actual[i].start),
-				wrong: typed.slice(actual[i].start, actual[i].end),
+				prefix: typed.slice(0, token.start),
+				wrong: typed.slice(token.start, token.end),
 			};
 		}
 	}
 	return { ok: true };
 }
+
+// Wrong attempts on the same position before the learner gets a hint.
+const HINT_AFTER_WRONG_ATTEMPTS = 5;
 
 // -------------------------------- End Utils --------------------------------
 
@@ -707,6 +717,12 @@ class MemoryCheckView extends FrameView {
 	#validateTyped(){
 		if(this.state !== 'text' || !this.textElement.hasAttribute('contenteditable')) return;
 
+		// Deleting all text can leave a line break behind; it is not a typed space.
+		if(this.textElement.textContent === ''){
+			this.textElement.replaceChildren();
+			this.#placeCaretAtEnd();
+		}
+
 		if(this.blocked){
 			this.#renderBlocked();
 			return;
@@ -730,7 +746,7 @@ class MemoryCheckView extends FrameView {
 
 	#renderBlocked(){
 		const wrongElem = document.createElement('span');
-		wrongElem.classList.add('wrong');
+		wrongElem.classList.add(/^\s+$/.test(this.blocked.wrong) ? 'wrong-space' : 'wrong');
 		wrongElem.textContent = this.blocked.wrong;
 
 		this.textElement.replaceChildren(document.createTextNode(this.blocked.prefix), wrongElem);
@@ -745,7 +761,7 @@ class MemoryCheckView extends FrameView {
 		const expected = this.expectedTokens[index];
 		if(hintDue && expected){
 			this.attempts.count = 0;
-			this.hint = expected.raw;
+			this.hint = expected.text === ' ' ? '␣' : expected.raw;
 			this.#renderHint();
 		}
 		this.#placeCaretAtEnd();

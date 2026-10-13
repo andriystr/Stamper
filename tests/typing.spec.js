@@ -66,12 +66,13 @@ test('V4: apostrophe and dash variants are equal', async ({ page }) => {
 	await openTrainer(page, 'Пам’ять Слово-слово.');
 	// The learner uses a plain apostrophe and an en dash; the expected text uses ’ and -.
 	await page.keyboard.type("Пам'ять ");
-	await page.keyboard.type('Слово–слово ');
+	await page.keyboard.type('Слово–слово.');
+	await page.keyboard.type(' ');
 	await expect(wrongToken(page)).toHaveCount(0);
-	// The next word is wrong, which proves the two words above were accepted as expected.
+	// The next word is wrong, which proves the words above were accepted as expected.
 	await page.keyboard.type('Другий ');
 	await expect(wrongToken(page)).toHaveText('Другий');
-	await expect(trainerText(page)).toHaveText("Пам'ять Слово–слово Другий");
+	await expect(trainerText(page)).toHaveText("Пам'ять Слово–слово. Другий");
 });
 
 test('V4b: a dash between words does not split the word', async ({ page }) => {
