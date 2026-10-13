@@ -352,6 +352,26 @@ button:active {
 	color: #334155;
 }
 
+/* Name and text count on a card in the menu */
+.card-info {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.card-meta {
+	font-size: 0.8rem;
+	color: #64748b;
+}
+
+/* Position of the current text in Memory check, on the right of the title */
+.progress {
+	font-size: 0.9rem;
+	color: #64748b;
+	font-variant-numeric: tabular-nums;
+}
+
 /* Compact Edit button inside individual card controls */
 .card .controls button.action-edit-text {
 	padding: 6px 14px;

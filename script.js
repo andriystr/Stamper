@@ -162,6 +162,10 @@ const UI_TEXT = {
 	editorTitle: 'Редактор',
 	newCardName: 'Нова картка',
 	newTextTitle: 'Назва тексту',
+	confirmDeleteCard: 'Видалити картку разом з усіма текстами? Цю дію не можна скасувати.',
+	confirmDeleteText: 'Видалити цей текст?',
+	textCount: count => `Текстів: ${count}`,
+	progress: (current, total) => `${current} з ${total}`,
 	nameRequired: 'Назва картки не може бути порожньою.',
 	textRequired: 'Додайте хоча б один текст, перш ніж зберегти картку.',
 	noTextsInCard: 'У цій картці немає текстів. Відкрийте редактор і додайте текст.',
@@ -291,7 +295,8 @@ class TrainerModel {
 		const cardsHeadData = await this.cardRepository.collect(value => {
 			return {
 				id: value.id,
-				name: value.name
+				name: value.name,
+				textCount: value.texts.length
 			}
 		});
 		return cardsHeadData.sort((a, b) => a.id - b.id);
@@ -411,8 +416,17 @@ class MenuView extends FrameView {
 			cardElem.classList.add('card');
 			cardElem.dataset.id = card.id;
 
+			const infoElem = document.createElement('div');
+			infoElem.classList.add('card-info');
+
 			const nameElem = document.createElement('h3');
 			nameElem.textContent = card.name;
+
+			const metaElem = document.createElement('span');
+			metaElem.classList.add('card-meta');
+			metaElem.textContent = UI_TEXT.textCount(card.textCount);
+
+			infoElem.append(nameElem, metaElem);
 
 			const controlsElem = document.createElement('div');
 			controlsElem.classList.add('controls');
@@ -422,7 +436,7 @@ class MenuView extends FrameView {
 			editButtonElem.textContent = UI_TEXT.edit;
 
 			controlsElem.appendChild(editButtonElem);
-			cardElem.append(nameElem, controlsElem);
+			cardElem.append(infoElem, controlsElem);
 			return cardElem;
 		});
 
@@ -524,6 +538,7 @@ class CardEditorView extends FrameView {
 	#addEventHandlers(textEditorElem){
 		textEditorElem.querySelector('.action-delete-text')
 			.addEventListener('click', event => {
+				if(!confirm(UI_TEXT.confirmDeleteText)) return;
 				event.target.closest('.editor').remove();
 			});
 	}
@@ -552,6 +567,14 @@ class MemoryCheckView extends FrameView {
 		this.checkTextElement = this.element.querySelector('.action-check-text');
 		this.againTextElement = this.element.querySelector('.action-again-text');
 		this.nextTextElement = this.element.querySelector('.action-next-text');
+		this.progressElement = this.element.querySelector('.progress');
+
+		this.textElement.addEventListener('keydown', event => {
+			if(event.key === 'Enter' && (event.ctrlKey || event.metaKey) && !this.checkTextElement.classList.contains('hidden')){
+				event.preventDefault();
+				this.checkTextElement.click();
+			}
+		});
 
 		this.textElement.addEventListener('click', event => {
 			if(this.state === 'text' && !this.textElement.attributes.contenteditable){
@@ -599,6 +622,10 @@ class MemoryCheckView extends FrameView {
 		this.titleElement.innerText = text;
 	}
 
+	setProgress(current, total){
+		this.progressElement.textContent = UI_TEXT.progress(current, total);
+	}
+
 	getText(){
 		return this.textElement.innerText;
 	}
@@ -628,6 +655,7 @@ class MemoryCheckView extends FrameView {
 		this.nextTextElement.classList.add('hidden');
 		this.checkTextElement.classList.add('hidden');
 		this.againTextElement.classList.add('hidden');
+		this.progressElement.textContent = '';
 		this.textElement.innerText = message;
 	}
 
@@ -739,6 +767,7 @@ class CardEditorController {
 		this.app.pannel.setTitle(UI_TEXT.editorTitle);
 		this.app.pannel.activeLeftButton(UI_TEXT.back, async () => await this.app.toMenu());
 		this.app.pannel.activeRightButton(UI_TEXT.delete, async () => {
+			if(!confirm(UI_TEXT.confirmDeleteCard)) return;
 			await this.app.model.deleteCard(this.view.getCurrentCardId());
 			await this.app.toMenu();
 		});
@@ -765,14 +794,10 @@ class MemoryCheckController {
 		this.currentTextIndex = 0;
 
 		this.view.onBackButtonClick(async () => {
-			const textObj = this.#prevText();
-			this.view.setTitle(textObj.title);
-			this.view.renderText(textObj.body);
+			this.#renderText(this.#prevText());
 		});
 		this.view.onNextButtonClick(async () => {
-			const textObj = this.#nextText();
-			this.view.setTitle(textObj.title);
-			this.view.renderText(textObj.body);
+			this.#renderText(this.#nextText());
 		});
 		this.view.onCheckButtonClick(async () => {
 			const textObj = this.#currentText();
@@ -818,6 +843,7 @@ class MemoryCheckController {
 
 	#renderText(textObj){
 		this.view.setTitle(textObj.title);
+		this.view.setProgress(this.currentTextIndex + 1, this.currentCard.texts.length);
 		this.view.renderText(textObj.body);
 	}
 

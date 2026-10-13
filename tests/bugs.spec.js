@@ -103,6 +103,8 @@ test('R4: saving a card with no texts is refused and the editor stays open', asy
 	await page.locator('.frame.menu .action-add-text').click();
 	await expect(activeEditor(page)).toBeVisible();
 
+	// Deleting a text asks for confirmation (C1); accept it so the card really has no texts.
+	page.once('dialog', dialog => dialog.accept());
 	await activeEditor(page).locator('.action-delete-text').click();
 	await activeEditor(page).locator('.action-save').click();
 
