@@ -167,16 +167,20 @@ test('U10: at 320px the card name never runs under its Edit button', async ({ pa
 	await page.setViewportSize({ width: 320, height: 640 });
 	await openMenu(page);
 	// Measure the text itself (a Range), not the box: overflowing text is what overlaps the button.
-	const { textRight, buttonLeft } = await page.evaluate(() => {
+	// The Edit button may wrap to its own row; they overlap only when both the columns and the rows meet.
+	const { text, button } = await page.evaluate(() => {
 		const h3 = document.querySelector('.frame.menu .card h3');
 		const range = document.createRange();
 		range.selectNodeContents(h3);
+		const pick = rect => ({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom });
 		return {
-			textRight: range.getBoundingClientRect().right,
-			buttonLeft: document.querySelector('.frame.menu .card .action-edit-text').getBoundingClientRect().left,
+			text: pick(range.getBoundingClientRect()),
+			button: pick(document.querySelector('.frame.menu .card .action-edit-text').getBoundingClientRect()),
 		};
 	});
-	expect(textRight, 'the name text runs under the Edit button').toBeLessThanOrEqual(buttonLeft + 1);
+	const overlaps = text.right > button.left + 1 && text.left < button.right
+		&& text.top < button.bottom && text.bottom > button.top;
+	expect(overlaps, `the name text ${JSON.stringify(text)} runs under the Edit button ${JSON.stringify(button)}`).toBe(false);
 });
 
 test('U8: button labels and secondary text meet 4.5:1 contrast', async ({ page }) => {

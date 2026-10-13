@@ -88,6 +88,7 @@ const UI_TEXT = {
 	textRequired: 'Додайте хоча б один текст, перш ніж зберегти картку.',
 	noTextsInCard: 'У цій картці немає текстів. Відкрийте редактор і додайте текст.',
 	noCards: 'Ще немає карток. Натисніть «Додати», щоб створити першу.',
+	moveCard: 'Перетягнути картку',
 };
 
 // -------------------------------- End Texts --------------------------------
@@ -101,12 +102,18 @@ class Text {
 	}
 }
 
+// The position of a card in the menu: 0 is first. Cards saved before the order existed have none.
 class Card {
 	constructor(id, name, texts){
 		this.id = id;
 		this.name = name;
 		this.texts = texts;
 	}
+}
+
+// Cards without an order come last, in id order.
+function byOrder(a, b){
+	return (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER) || a.id - b.id;
 }
 
 class CardRepository {
@@ -175,6 +182,24 @@ class CardRepository {
 		});
 	}
 
+	// Gives the cards the order of the ids: the first id gets 0, the next 1, and so on. One transaction.
+	setOrder(ids){
+		return new Promise((resolve, reject) => {
+			const transaction = this.db.transaction(this.storeName, 'readwrite');
+			const store = transaction.objectStore(this.storeName);
+
+			ids.forEach((id, order) => {
+				const request = store.get(id);
+				request.onsuccess = () => {
+					if(request.result) store.put({...request.result, order});
+				};
+			});
+
+			transaction.oncomplete = () => resolve(true);
+			transaction.onerror = () => reject(transaction.error);
+		});
+	}
+
 	collect(callback){
 		return new Promise((resolve, reject) => {
 			const transaction = this.db.transaction(this.storeName, 'readonly');
@@ -215,14 +240,34 @@ class TrainerModel {
 			return {
 				id: value.id,
 				name: value.name,
+				order: value.order,
 				textCount: value.texts.length
 			}
 		});
-		return cardsHeadData.sort((a, b) => a.id - b.id);
+		cardsHeadData.sort(byOrder);
+
+		// Cards saved before the order existed get one now, in the order they are shown.
+		if(cardsHeadData.some(card => card.order === undefined)){
+			cardsHeadData.forEach((card, order) => { card.order = order; });
+			await this.cardRepository.setOrder(cardsHeadData.map(card => card.id));
+		}
+		return cardsHeadData;
 	}
 
-	saveCard(card){
+	// A new card goes last; an edited card keeps its place.
+	async saveCard(card){
+		const existing = Number.isInteger(card.id) ? await this.cardRepository.get(card.id) : undefined;
+		card.order = existing?.order ?? await this.#nextOrder();
 		return this.cardRepository.set(card);
+	}
+
+	saveCardOrder(ids){
+		return this.cardRepository.setOrder(ids);
+	}
+
+	async #nextOrder(){
+		const orders = await this.cardRepository.collect(value => value.order ?? -1);
+		return Math.max(-1, ...orders) + 1;
 	}
 
 	async deleteCard(id){
@@ -357,6 +402,9 @@ class FrameView {
 	}
 }
 
+// Six dots, the usual drag handle. Static markup: no user data goes into it.
+const GRIP_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>';
+
 class MenuView extends FrameView {
 	constructor(){
 		super(document.querySelector('.frame.menu').closest('.frame-wrapper'));
@@ -368,6 +416,16 @@ class MenuView extends FrameView {
 
 		this.editButtonClickHandler = (id) => {};
 		this.cardClickHandler = (id) => {};
+		this.cardsReorderedHandler = (ids) => {};
+
+		// The drag in progress, if any. Only one drag at a time, from a mouse, a pen or a finger.
+		this.drag = null;
+		// Set for a moment after a drag, so the click that the browser may fire on release does not open the card.
+		this.suppressCardClick = false;
+
+		window.addEventListener('pointermove', event => this.#moveDrag(event));
+		window.addEventListener('pointerup', () => this.#endDrag(true));
+		window.addEventListener('pointercancel', () => this.#endDrag(false));
 	}
 
 	onEditButtonClickHandler(callback){
@@ -376,6 +434,11 @@ class MenuView extends FrameView {
 
 	onCardClickHandler(callback){
 		this.cardClickHandler = callback;
+	}
+
+	// Called with the ids of all cards in their new order, after a drag or a key press.
+	onCardsReordered(callback){
+		this.cardsReorderedHandler = callback;
 	}
 
 	renderCards(cards){
@@ -391,6 +454,11 @@ class MenuView extends FrameView {
 			const cardElem = document.createElement('div');
 			cardElem.classList.add('card');
 			cardElem.dataset.id = card.id;
+
+			const handleElem = document.createElement('button');
+			handleElem.classList.add('card-handle');
+			handleElem.setAttribute('aria-label', UI_TEXT.moveCard);
+			handleElem.innerHTML = GRIP_ICON;
 
 			const infoElem = document.createElement('div');
 			infoElem.classList.add('card-info');
@@ -412,14 +480,17 @@ class MenuView extends FrameView {
 			editButtonElem.textContent = UI_TEXT.edit;
 
 			controlsElem.appendChild(editButtonElem);
-			cardElem.append(infoElem, controlsElem);
+			cardElem.append(handleElem, infoElem, controlsElem);
 			return cardElem;
 		});
 
 		this.cardListElement.replaceChildren(...newElements);
 		newElements.forEach(elem => elem.addEventListener('click', async event => {
+			if(this.suppressCardClick) return;
 			await this.cardClickHandler(event.target.closest('.card').dataset.id);
 		}));
+
+		newElements.forEach(elem => this.#addDragHandlers(elem.querySelector('.card-handle')));
 
 		newElements.forEach(elem => elem.querySelector('.action-edit-text')
 			.addEventListener('click', async event => {
@@ -431,6 +502,107 @@ class MenuView extends FrameView {
 
 	onAddButtonClick(callback){
 		this.onAddClickHandler = callback;
+	}
+
+	#addDragHandlers(handleElem){
+		// A click on the handle is not a click on the card.
+		handleElem.addEventListener('click', event => event.stopPropagation());
+		handleElem.addEventListener('pointerdown', event => this.#startDrag(event));
+		handleElem.addEventListener('keydown', event => this.#onHandleKeydown(event));
+	}
+
+	#cardIds(){
+		return [...this.cardListElement.querySelectorAll('.card')].map(elem => +elem.dataset.id);
+	}
+
+	// The card moves to the body and follows the pointer; a placeholder keeps its slot in the list.
+	#startDrag(event){
+		if(event.button !== 0 || this.drag) return;
+		event.preventDefault();
+
+		const cardElem = event.currentTarget.closest('.card');
+		const rect = cardElem.getBoundingClientRect();
+		const placeholder = document.createElement('div');
+		placeholder.classList.add('card-placeholder');
+		placeholder.style.height = `${rect.height}px`;
+
+		this.drag = {
+			cardElem,
+			placeholder,
+			startY: event.clientY,
+			startTop: rect.top,
+			nextElem: cardElem.nextElementSibling,
+			idsBefore: this.#cardIds(),
+		};
+
+		cardElem.before(placeholder);
+		Object.assign(cardElem.style, {
+			position: 'fixed',
+			top: `${rect.top}px`,
+			left: `${rect.left}px`,
+			width: `${rect.width}px`,
+		});
+		cardElem.classList.add('dragging');
+		document.body.append(cardElem);
+	}
+
+	#moveDrag(event){
+		if(!this.drag) return;
+		const { cardElem, placeholder, startY, startTop } = this.drag;
+		cardElem.style.top = `${startTop + event.clientY - startY}px`;
+
+		// The placeholder moves past a neighbour once the pointer has passed that neighbour's middle.
+		let previous = placeholder.previousElementSibling;
+		while(previous && event.clientY < this.#middle(previous)){
+			this.cardListElement.insertBefore(placeholder, previous);
+			previous = placeholder.previousElementSibling;
+		}
+		let next = placeholder.nextElementSibling;
+		while(next && event.clientY > this.#middle(next)){
+			this.cardListElement.insertBefore(next, placeholder);
+			next = placeholder.nextElementSibling;
+		}
+	}
+
+	// save is false when the browser cancels the pointer: the card goes back to where it was.
+	#endDrag(save){
+		if(!this.drag) return;
+		const { cardElem, placeholder, nextElem, idsBefore } = this.drag;
+		this.drag = null;
+
+		if(!save) this.cardListElement.insertBefore(placeholder, nextElem);
+		placeholder.replaceWith(cardElem);
+		cardElem.removeAttribute('style');
+		cardElem.classList.remove('dragging');
+
+		this.suppressCardClick = true;
+		setTimeout(() => { this.suppressCardClick = false; });
+
+		const idsAfter = this.#cardIds();
+		if(save && idsAfter.join() !== idsBefore.join()) this.cardsReorderedHandler(idsAfter);
+	}
+
+	#middle(elem){
+		const rect = elem.getBoundingClientRect();
+		return rect.top + rect.height / 2;
+	}
+
+	// ArrowUp and ArrowDown move the card one place. The handle keeps the focus, which moving the element would lose.
+	#onHandleKeydown(event){
+		const handleElem = event.currentTarget;
+		const cardElem = handleElem.closest('.card');
+
+		if(event.key === 'ArrowUp' && cardElem.previousElementSibling){
+			this.cardListElement.insertBefore(cardElem, cardElem.previousElementSibling);
+		} else if(event.key === 'ArrowDown' && cardElem.nextElementSibling){
+			this.cardListElement.insertBefore(cardElem.nextElementSibling, cardElem);
+		} else {
+			return;
+		}
+
+		event.preventDefault();
+		handleElem.focus();
+		this.cardsReorderedHandler(this.#cardIds());
 	}
 }
 
@@ -780,6 +952,10 @@ class MenuController {
 
 		this.view.onCardClickHandler(async id => {
 			await this.app.toMemoryCheck(id);
+		});
+
+		this.view.onCardsReordered(async ids => {
+			await this.app.model.saveCardOrder(ids);
 		});
 	}
 

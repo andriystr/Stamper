@@ -337,6 +337,51 @@ button.right {
 	margin-left: auto;
 }
 
+/* Drag handle: the only place where a drag starts. 44 px is the touch size; touch-action stops a finger from scrolling the list */
+.card-handle {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
+	padding: 0;
+	color: var(--grey-500);
+	background: none;
+	border: none;
+	border-radius: var(--radius);
+	cursor: grab;
+	touch-action: none;
+	user-select: none;
+}
+
+.card-handle:hover {
+	color: var(--grey-700);
+	background-color: var(--grey-200);
+}
+
+.card-handle svg {
+	width: 24px;
+	height: 24px;
+	fill: currentColor;
+}
+
+/* The card being dragged floats above the list */
+.card.dragging {
+	z-index: 10;
+	cursor: grabbing;
+	background-color: var(--white);
+	box-shadow: var(--shadow-2);
+}
+
+/* The empty slot where the dragged card will land: a tinted box with a dashed edge, so it is not told by colour alone */
+.card-placeholder {
+	flex-shrink: 0;
+	background-color: var(--primary-50);
+	border: 2px dashed var(--primary-300);
+	border-radius: var(--radius);
+}
+
 .empty-state {
 	margin: auto;
 	max-width: 32ch;
