@@ -1302,6 +1302,7 @@ class MemoryCheckController {
 		this.view.show();
 		this.app.pannel.setTitle(this.currentCard.name);
 		this.app.pannel.activeLeftButton(UI_TEXT.back, async () => await this.app.toMenu());
+		this.app.pannel.deactiveRightButton();
 	}
 
 	async deactive(){

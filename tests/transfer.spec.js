@@ -234,3 +234,18 @@ test('X9: with no cards the screen says so and the export button is disabled', a
 	await expect(activeTransfer(page).locator('.empty-state')).toHaveText('Ще немає карток для експорту.');
 	await expect(exportButton(page)).toBeDisabled();
 });
+
+test('X10: the transfer button is on the menu only; the card trainer and the editor do not show it', async ({ page }) => {
+	await openMenu(page);
+	await expect(page.locator('header .right')).toHaveText('Імпорт/експорт');
+
+	await activeMenu(page).locator('.card').first().click();
+	await expect(page.locator('.frame-wrapper.active .frame.trainer')).toBeVisible();
+	await expect(page.locator('header .right')).toBeHidden();
+
+	await page.locator('header .left').click();
+	await expect(activeMenu(page)).toBeVisible();
+	await activeMenu(page).locator('.card .action-edit-text').first().click();
+	await expect(page.locator('.frame-wrapper.active .frame.edit-card')).toBeVisible();
+	await expect(page.locator('header .right')).toHaveText('Видалити');
+});
