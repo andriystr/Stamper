@@ -5,6 +5,7 @@ const ASSETS = [
   'style.css',
   'script.js',
   'icon.png',
+  'apple-touch-icon.png',
   'manifest.json'
 ];
 
