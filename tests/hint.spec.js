@@ -66,9 +66,6 @@ test('H3: the hint is not part of the text', async ({ page }) => {
 	await expect(hint(page)).toHaveCount(1);
 
 	expect(await trainerText(page).innerText()).toBe('');
-	await activeTrainer(page).locator('.action-check-text').click();
-	await expect(activeTrainer(page).locator('.action-again-text')).toBeVisible();
-	await expect(trainerText(page).locator('.hint')).toHaveCount(0);
 });
 
 test('H4: after a hint, five more attempts are needed for the next hint', async ({ page }) => {

@@ -65,21 +65,21 @@ for (const [name, viewport] of Object.entries(VIEWPORTS)) {
 			expect(Math.abs(titleCenter - headerCenter)).toBeLessThanOrEqual(TOLERANCE);
 		});
 
-		test('Memory check buttons form an even grid', async ({ page }) => {
+		test('Memory check buttons are even (Back and Next)', async ({ page }) => {
 			await page.goto('/');
 			await seedCards(page, [{ id: 2, name: 'Сітка', texts: [{ title: 'Т', body: 'Текст.' }] }]);
 			await page.reload();
 			await activeMenu(page).locator('.card').first().click();
 			await expect(activeTrainer(page)).toBeVisible();
 
-			// Before a check the visible buttons are Back, Check and Next (Again is hidden).
-			const visible = ['.action-back-text', '.action-check-text', '.action-next-text'];
-			const boxes = await Promise.all(visible.map(sel => activeTrainer(page).locator(sel).boundingBox()));
+			const boxes = await Promise.all(
+				['.action-back-text', '.action-next-text'].map(sel => activeTrainer(page).locator(sel).boundingBox())
+			);
 			const rows = new Set(boxes.map(box => Math.round(box.y)));
 			const widths = boxes.map(box => Math.round(box.width));
 
 			if (viewport.width < 600) {
-				expect(rows.size, 'buttons are not in two rows').toBe(2);
+				expect(rows.size, 'buttons are not in one row').toBe(1);
 				expect(Math.max(...widths) - Math.min(...widths), `widths differ: ${widths.join(', ')}`)
 					.toBeLessThanOrEqual(TOLERANCE);
 			}

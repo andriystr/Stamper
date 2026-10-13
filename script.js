@@ -1,155 +1,6 @@
 
 // ================================== Utils ==================================
 
-function diffText(textA, textB) {
-	const regex = /(\s+|[.,!?-]|\p{L}+|\p{N}+)/u;
-	
-	const a = textA.split(regex).filter(Boolean);
-	const b = textB.split(regex).filter(Boolean);
-
-	const n = a.length;
-	const m = b.length;
-	const maxD = n + m;
-	
-	const v = new Array(2 * maxD + 1);
-	v[maxD + 1] = 0;
-	const history = [];
-
-	let x, y;
-	let found = false;
-
-	for (let d = 0; d <= maxD; d++) {
-		history.push([...v]);
-
-		for (let k = -d; k <= d; k += 2) {
-			const kIdx = k + maxD;
-			
-			if (k === -d || (k !== d && v[kIdx - 1] < v[kIdx + 1])) {
-				x = v[kIdx + 1]; 
-			} else {
-				x = v[kIdx - 1] + 1; 
-			}
-
-			y = x - k;
-
-			while (x < n && y < m && a[x] === b[y]) {
-				x++;
-				y++;
-			}
-
-			v[kIdx] = x;
-
-			if (x >= n && y >= m) {
-				found = true;
-				break;
-			}
-		}
-		if (found) break;
-	}
-
-	x = n;
-	y = m;
-	const diff = [];
-
-	for (let d = history.length - 1; d >= 0; d--) {
-		const currentV = history[d];
-		const k = x - y;
-		const kIdx = k + maxD;
-
-		let prevK;
-		if (k === -d || (k !== d && currentV[kIdx - 1] < currentV[kIdx + 1])) {
-			prevK = k + 1;
-		} else {
-			prevK = k - 1;
-		}
-
-		const prevX = currentV[prevK + maxD];
-		const prevY = prevX - prevK;
-
-		while (x > prevX && y > prevY) {
-			diff.unshift({ type: 'keep', value: a[x - 1] });
-			x--;
-			y--;
-		}
-
-		if (d > 0) {
-			if (x === prevX) {
-				diff.unshift({ type: 'add', value: b[y - 1] });
-				y--;
-			} else {
-				diff.unshift({ type: 'remove', value: a[x - 1] });
-				x--;
-			}
-		}
-	}
-
-	return diff;
-}
-
-function groupDiff(diffList) {
-	if (!diffList || diffList.length === 0) return [];
-
-	const grouped = [];
-
-	let currentGroup = {
-		type: diffList[0].type,
-		value: diffList[0].value
-	};
-
-	for (let i = 1; i < diffList.length; i++) {
-		const item = diffList[i];
-
-		if (item.type === currentGroup.type) {
-			currentGroup.value += item.value;
-		} else {
-			grouped.push(currentGroup);
-			currentGroup = {
-				type: item.type,
-				value: item.value
-			};
-		}
-	}
-
-	grouped.push(currentGroup);
-
-	return grouped;
-}
-
-function detectReplacements(groupedDiff, maxLengthDiff = 10) {
-	if (!groupedDiff || groupedDiff.length === 0) return [];
-
-	const result = [];
-
-	for (let i = 0; i < groupedDiff.length; i++) {
-		const current = groupedDiff[i];
-		const next = groupedDiff[i + 1];
-
-		if (current.type === 'remove' && next && next.type === 'add') {
-			if (current.value.trim() === '' && next.value.trim() === '') {
-				result.push(current);
-				continue;
-			}
-
-			const lengthDifference = Math.abs(current.value.length - next.value.length);
-
-			if (lengthDifference <= maxLengthDiff) {
-				result.push({
-					type: 'replace',
-					removed: current.value,
-					added: next.value
-				});
-				i++;
-			} else {
-				result.push(current);
-			}
-		} else {
-			result.push(current);
-		}
-	}
-
-	return result;
-}
-
 // Apostrophe and dash variants are compared as one character each (same length, so positions match).
 const APOSTROPHE_VARIANTS = /[’‘‛ʼ`´՚᾽᾿]/g;
 const DASH_VARIANTS = /[–—]/g;
@@ -198,7 +49,17 @@ function checkTyped(expectedTokens, typed) {
 			};
 		}
 	}
-	return { ok: true };
+	return { ok: true, complete: isComplete(expectedTokens, actual) };
+}
+
+// Complete: every expected token is typed, and the last one is finished, which means something follows it
+// (a space, or any extra token) or it is a mark (a mark cannot grow into a longer token).
+// Extra tokens after the expected ones may only be spaces.
+function isComplete(expectedTokens, actual) {
+	const count = expectedTokens.length;
+	if (count === 0 || actual.length < count) return false;
+	if (actual.length > count) return actual.slice(count).every(token => token.text === ' ');
+	return !/^[\p{L}\p{N}]/u.test(actual[count - 1].text);
 }
 
 // Wrong attempts on the same position before the learner gets a hint.
@@ -367,16 +228,6 @@ class TrainerModel {
 			return true;
 		}
 		return false
-	}
-
-	getDifference(original, userInput){
-		const origin = canonical(original.replaceAll(/\s+/g, ' '));
-		const input = canonical(userInput.replaceAll(/\s+/g, ' '));
-
-		const diffList = diffText(origin, input);
-		const groupedDiff = groupDiff(diffList);
-		const diffWithReplaces = detectReplacements(groupedDiff, 10);
-		return diffWithReplaces;
 	}
 }
 
@@ -614,13 +465,14 @@ class MemoryCheckView extends FrameView {
 		this.titleElement = this.element.querySelector('.title h3');
 		this.textElement = this.element.querySelector('.text');
 		this.backTextElement = this.element.querySelector('.action-back-text');
-		this.checkTextElement = this.element.querySelector('.action-check-text');
-		this.againTextElement = this.element.querySelector('.action-again-text');
 		this.nextTextElement = this.element.querySelector('.action-next-text');
 		this.progressElement = this.element.querySelector('.progress');
 
-		this.blocked = null;
+		// 'text': the opening view; 'typing': the learner types; 'done': complete and locked; 'empty': no texts
+		this.state = 'text';
+		this.expectedText = '';
 		this.expectedTokens = [];
+		this.blocked = null;
 		this.attempts = { index: -1, count: 0 };
 		this.hint = null;
 
@@ -630,33 +482,14 @@ class MemoryCheckView extends FrameView {
 		});
 		this.textElement.addEventListener('compositionend', () => this.#validateTyped());
 
-		this.textElement.addEventListener('keydown', event => {
-			if(event.key === 'Enter' && (event.ctrlKey || event.metaKey) && !this.checkTextElement.classList.contains('hidden')){
-				event.preventDefault();
-				this.checkTextElement.click();
-			}
-		});
-
-		this.textElement.addEventListener('click', event => {
-			if(this.state === 'text' && !this.textElement.attributes.contenteditable){
-				this.#activeEditor();
-				this.textElement.innerText = '';
-			}
-
+		this.textElement.addEventListener('click', () => {
+			if(this.state === 'text') this.#startTyping();
 			this.textElement.focus();
 		});
 
 		this.backTextElement.addEventListener('click', async event => {
 			this.#deactiveEditor();
 			await this.backButtonClickHandler();
-		});
-		this.checkTextElement.addEventListener('click', async event => {
-			if(this.blocked) return;
-			await this.checkButtonClickHandler();
-		});
-		this.againTextElement.addEventListener('click', async event => {
-			this.#deactiveEditor();
-			await this.againButtonClickHandler();
 		});
 		this.nextTextElement.addEventListener('click', async event => {
 			this.#deactiveEditor();
@@ -672,14 +505,6 @@ class MemoryCheckView extends FrameView {
 		this.nextButtonClickHandler = callback;
 	}
 
-	onCheckButtonClick(callback){
-		this.checkButtonClickHandler = callback;
-	}
-
-	onAgainButtonClick(callback){
-		this.againButtonClickHandler = callback;
-	}
-
 	setTitle(text){
 		this.titleElement.innerText = text;
 	}
@@ -688,17 +513,68 @@ class MemoryCheckView extends FrameView {
 		this.progressElement.textContent = UI_TEXT.progress(current, total);
 	}
 
-	getText(){
-		return this.textElement.innerText;
+	renderText(text){
+		this.state = 'text';
+		this.expectedText = text;
+		this.expectedTokens = tokenize(text);
+		this.blocked = null;
+		this.attempts = { index: -1, count: 0 };
+		this.hint = null;
+		this.#deactiveEditor();
+		this.textElement.classList.remove('locked');
+		this.backTextElement.classList.remove('hidden');
+		this.nextTextElement.classList.remove('hidden');
+		this.textElement.innerText = text;
 	}
 
-	#activeEditor(){
+	renderEmpty(message){
+		this.state = 'empty';
+		this.blocked = null;
+		this.#deactiveEditor();
+		this.textElement.classList.remove('locked');
+		this.backTextElement.classList.add('hidden');
+		this.nextTextElement.classList.add('hidden');
+		this.progressElement.textContent = '';
+		this.textElement.innerText = message;
+	}
+
+	#startTyping(){
+		this.state = 'typing';
 		this.textElement.setAttribute('contenteditable', true);
+		this.textElement.textContent = '';
+	}
+
+	// Complete text: shown as at opening and locked. Backspace clears it and typing starts again.
+	// The field stays focused, so on a phone Backspace works with the keyboard open.
+	#finish(){
+		this.state = 'done';
+		this.blocked = null;
+		this.textElement.classList.add('locked');
+		this.textElement.textContent = this.expectedText;
+		this.#placeCaretAtEnd();
+	}
+
+	#restart(){
+		this.state = 'typing';
+		this.textElement.classList.remove('locked');
+		this.attempts = { index: -1, count: 0 };
+		this.textElement.replaceChildren();
+		this.#placeCaretAtEnd();
 	}
 
 	// While a wrong token is shown, typing is blocked; only Backspace works and removes the whole token.
 	// Outside that state, the caret must be at the end: the check only looks at the end of the text.
 	#onBeforeInput(event){
+		if(this.state === 'done'){
+			event.preventDefault();
+			if(event.inputType.startsWith('delete')) this.#restart();
+			return;
+		}
+		if(this.state !== 'typing'){
+			event.preventDefault();
+			return;
+		}
+
 		if(this.hint) this.#clearHint();
 		if(event.isComposing) return;
 
@@ -715,7 +591,7 @@ class MemoryCheckView extends FrameView {
 
 	// Runs after every change the browser made to the text; the browser may have typed a whole word (phones, paste).
 	#validateTyped(){
-		if(this.state !== 'text' || !this.textElement.hasAttribute('contenteditable')) return;
+		if(this.state !== 'typing') return;
 
 		// Deleting all text can leave a line break behind; it is not a typed space.
 		if(this.textElement.textContent === ''){
@@ -729,7 +605,10 @@ class MemoryCheckView extends FrameView {
 		}
 
 		const result = checkTyped(this.expectedTokens, this.textElement.innerText);
-		if(result.ok) return;
+		if(result.ok){
+			if(result.complete) this.#finish();
+			return;
+		}
 
 		if(this.attempts.index !== result.index) this.attempts = { index: result.index, count: 0 };
 		this.attempts.count += 1;
@@ -815,78 +694,6 @@ class MemoryCheckView extends FrameView {
 
 	#deactiveEditor(){
 		this.textElement.removeAttribute('contenteditable');
-	}
-
-	renderText(text){
-		this.state = 'text';
-		this.expectedTokens = tokenize(text);
-		this.blocked = null;
-		this.attempts = { index: -1, count: 0 };
-		this.hint = null;
-		this.#deactiveEditor();
-		this.backTextElement.classList.remove('hidden');
-		this.nextTextElement.classList.remove('hidden');
-		this.checkTextElement.classList.remove('hidden');
-		this.againTextElement.classList.add('hidden');
-		this.textElement.innerText = text;
-	}
-
-	renderEmpty(message){
-		this.state = 'empty';
-		this.blocked = null;
-		this.#deactiveEditor();
-		this.backTextElement.classList.add('hidden');
-		this.nextTextElement.classList.add('hidden');
-		this.checkTextElement.classList.add('hidden');
-		this.againTextElement.classList.add('hidden');
-		this.progressElement.textContent = '';
-		this.textElement.innerText = message;
-	}
-
-	renderCorects(difference){
-		this.state = 'corects';
-		this.#deactiveEditor();
-		this.checkTextElement.classList.add('hidden');
-		this.againTextElement.classList.remove('hidden');
-		
-		const nodes = difference.map(action => {
-			switch(action.type){
-			case 'keep':
-				return document.createTextNode(action.value);
-			break;
-			case 'add':
-				let elem = null;
-				if((/^ +$/).test(action.value)){
-					elem = document.createElement('u');
-				} else {
-					elem = document.createElement('del');
-				}
-				elem.innerText = action.value;
-				return elem;
-			break;
-			case 'remove':
-				const insElem = document.createElement('ins');
-				insElem.innerText = action.value;
-				return insElem;
-			break;
-			case 'replace':
-				const delElem = document.createElement('del');
-				const rtElem = document.createElement('rt');
-				const rubyElem = document.createElement('ruby');
-				rubyElem.appendChild(delElem);
-				rubyElem.appendChild(rtElem);
-
-				delElem.innerText = action.added;
-				rtElem.innerText = action.removed + ' ';
-
-				return rubyElem;
-			break;
-			default:
-				throw Error(`Unexpected action type "${action.type}"`);
-			}
-		});
-
-		this.textElement.replaceChildren(...nodes);
 	}
 }
 
@@ -982,16 +789,6 @@ class MemoryCheckController {
 		});
 		this.view.onNextButtonClick(async () => {
 			this.#renderText(this.#nextText());
-		});
-		this.view.onCheckButtonClick(async () => {
-			const textObj = this.#currentText();
-			const userInput = this.view.getText();
-			const diffList = this.app.model.getDifference(textObj.body, userInput);
-			this.view.renderCorects(diffList);
-		});
-		this.view.onAgainButtonClick(async () => {
-			const textObj = this.#currentText();
-			this.view.renderText(textObj.body);
 		});
 	}
 

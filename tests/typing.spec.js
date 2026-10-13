@@ -65,14 +65,11 @@ test('V3: a word is not judged while it is still being typed', async ({ page }) 
 test('V4: apostrophe and dash variants are equal', async ({ page }) => {
 	await openTrainer(page, 'Пам’ять Слово-слово.');
 	// The learner uses a plain apostrophe and an en dash; the expected text uses ’ and -.
-	await page.keyboard.type("Пам'ять ");
-	await page.keyboard.type('Слово–слово.');
-	await page.keyboard.type(' ');
+	await page.keyboard.type("Пам'ять Слово–слово.");
+	// The whole text is typed with the other variants: no wrong token, and the text is complete (locked).
 	await expect(wrongToken(page)).toHaveCount(0);
-	// The next word is wrong, which proves the words above were accepted as expected.
-	await page.keyboard.type('Другий ');
-	await expect(wrongToken(page)).toHaveText('Другий');
-	await expect(trainerText(page)).toHaveText("Пам'ять Слово–слово. Другий");
+	await expect(trainerText(page)).toHaveClass(/locked/);
+	await expect(trainerText(page)).toHaveText('Пам’ять Слово-слово.');
 });
 
 test('V4b: a dash between words does not split the word', async ({ page }) => {
@@ -110,17 +107,6 @@ test('V5b: without vibration support a wrong token still works and nothing fails
 	expect(errors).toEqual([]);
 });
 
-test('V6: Check does nothing while a wrong token is shown', async ({ page }) => {
-	await openTrainer(page, 'Перший текст.');
-	await page.keyboard.type('Другий ');
-	await expect(wrongToken(page)).toHaveText('Другий');
-
-	await activeTrainer(page).locator('.action-check-text').click();
-
-	await expect(wrongToken(page)).toHaveText('Другий');
-	await expect(activeTrainer(page).locator('.action-again-text')).toBeHidden();
-});
-
 test('V7: comparison is case-sensitive', async ({ page }) => {
 	await openTrainer(page, 'Слово потім.');
 	await page.keyboard.type('слово ');
@@ -136,13 +122,4 @@ test('V8: a punctuation mark is its own token', async ({ page }) => {
 
 	await expect(wrongToken(page)).toHaveText('.');
 	await expect(trainerText(page)).toHaveText('Так.');
-});
-
-test('V9: Check still shows the red-pen view for the unfinished last token', async ({ page }) => {
-	await openTrainer(page, 'Перший текст.');
-	await page.keyboard.type('Перший текст');
-	await activeTrainer(page).locator('.action-check-text').click();
-
-	await expect(activeTrainer(page).locator('.action-again-text')).toBeVisible();
-	await expect(trainerText(page).locator('ins')).toHaveText('.');
 });

@@ -62,8 +62,6 @@ test('U4: the Memory check screen shows Ukrainian labels', async ({ page }) => {
 	await expect(activeTrainer(page)).toBeVisible();
 	await expect(page.locator('header .left')).toHaveText('Назад');
 	await expect(activeTrainer(page).locator('.action-back-text')).toHaveText('Назад');
-	await expect(activeTrainer(page).locator('.action-check-text')).toHaveText('Перевірити');
-	await expect(activeTrainer(page).locator('.action-again-text')).toHaveText('Ще раз');
 	await expect(activeTrainer(page).locator('.action-next-text')).toHaveText('Далі');
 });
 

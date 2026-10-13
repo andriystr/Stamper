@@ -200,6 +200,12 @@ header h2 {
 	background-color: #f1f5f9;
 }
 
+/* Complete text is locked: it looks like the opening view (white), also while focused */
+.editor .text.locked,
+.editor .text.locked:focus {
+	background-color: #ffffff;
+}
+
 /* If the field is the only one on the screen, allow it to take maximum space */
 .frame > .editor .text {
 	flex-grow: 1;
@@ -215,20 +221,8 @@ header h2 {
 }
 
 /* ==========================================================================
-	5. TEACHER REVIEW EFFECT ("RED PEN")
+	5. TYPED TEXT STATES
 	========================================================================== */
-
-/* Deleted text: original word color (dark), strikethrough line is RED */
-.editor .text del {
-	color: inherit;
-	text-decoration: line-through;
-	text-decoration-color: #dc2626;
-	text-decoration-thickness: 2px;
-}
-
-.editor .text u {
-	text-decoration: underline solid red;
-}
 
 /* Wrong space typed where the text has none: the space is empty, so the background is red */
 .editor .text .wrong-space {
@@ -249,28 +243,6 @@ header h2 {
 	content: attr(data-hint);
 	color: #94a3b8;
 	user-select: none;
-}
-
-/* Inserted text / teacher's notes: completely RED */
-.editor .text ins {
-	color: #dc2626;
-	text-decoration: none;
-	font-weight: inherit;
-}
-
-/* Container for the correct variation above the error */
-.editor .text ruby {
-	ruby-position: over;
-	ruby-align: center;
-}
-
-/* Red teacher's note above the word */
-.editor .text rt {
-	font-size: 0.75rem;
-	color: #dc2626;
-	font-weight: 600;
-	padding-bottom: 4px;
-	user-select: none; /* Prevent accidental mouse selection */
 }
 
 /* ==========================================================================

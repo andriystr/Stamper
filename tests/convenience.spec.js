@@ -79,21 +79,6 @@ test('C2: the Memory check screen shows the position of the text', async ({ page
 	await expect(activeTrainer(page).locator('.progress')).toHaveText('2 з 2');
 });
 
-test('C3: Ctrl+Enter runs the check, and the Check button shows the shortcut', async ({ page }) => {
-	await openApp(page);
-	await seedCards(page, [{ id: 7, name: 'Швидко', texts: [{ title: 'Т', body: 'Текст для перевірки.' }] }]);
-	await page.reload();
-	await activeMenu(page).locator('.card', { hasText: 'Швидко' }).click();
-
-	await expect(activeTrainer(page).locator('.action-check-text')).toHaveAttribute('title', 'Ctrl+Enter');
-	await activeTrainer(page).locator('.text').click();
-	await page.keyboard.type('Текст для перевірки.');
-	await page.keyboard.press('Control+Enter');
-
-	await expect(activeTrainer(page).locator('.action-again-text')).toBeVisible();
-	await expect(activeTrainer(page).locator('.action-check-text')).toBeHidden();
-});
-
 test('C4: each card in the menu shows its number of texts', async ({ page }) => {
 	await openApp(page);
 	await seedCards(page, [
