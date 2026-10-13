@@ -39,17 +39,14 @@ test('C1: deleting a card or a text asks first; cancel keeps it', async ({ page 
 	// Cancel the card delete: the card stays.
 	await activeMenu(page).locator('.card', { hasText: 'Важлива картка' }).locator('.action-edit-text').click();
 	await expect(activeEditor(page)).toBeVisible();
-	page.once('dialog', dialog => {
-		expect(dialog.type()).toBe('confirm');
-		dialog.dismiss();
-	});
 	await page.locator('header .right').click();
+	await page.locator('[role="alertdialog"] .dialog-cancel').click();
 	await expect(activeEditor(page)).toBeVisible();
 	await expect(activeEditor(page).locator('.editor')).toHaveCount(2);
 
 	// Cancel the text delete: the text stays.
-	page.once('dialog', dialog => dialog.dismiss());
 	await activeEditor(page).locator('.action-delete-text').first().click();
+	await page.locator('[role="alertdialog"] .dialog-cancel').click();
 	await expect(activeEditor(page).locator('.editor')).toHaveCount(2);
 
 	// Back to the menu: the card is still there.
@@ -58,8 +55,8 @@ test('C1: deleting a card or a text asks first; cancel keeps it', async ({ page 
 
 	// Accept the card delete: the card is removed.
 	await activeMenu(page).locator('.card').locator('.action-edit-text').click();
-	page.once('dialog', dialog => dialog.accept());
 	await page.locator('header .right').click();
+	await page.locator('[role="alertdialog"] .dialog-confirm').click();
 	await expect(activeMenu(page)).toBeVisible();
 	await expect(activeMenu(page).locator('.card')).toHaveCount(0);
 });

@@ -77,8 +77,11 @@ const UI_TEXT = {
 	editorTitle: 'Редактор',
 	newCardName: 'Нова картка',
 	newTextTitle: 'Назва тексту',
-	confirmDeleteCard: 'Видалити картку разом з усіма текстами? Цю дію не можна скасувати.',
-	confirmDeleteText: 'Видалити цей текст?',
+	cancel: 'Скасувати',
+	cardDeleteTitle: 'Видалити картку?',
+	cardDeleteMessage: 'Цю дію не можна скасувати. Усі тексти картки теж буде видалено.',
+	textDeleteTitle: 'Видалити текст?',
+	textDeleteMessage: 'Текст буде прибрано з редактора. Щоб зміни збереглися, натисніть «Зберегти».',
 	textCount: count => `Текстів: ${count}`,
 	progress: (current, total) => `${current} з ${total}`,
 	nameRequired: 'Назва картки не може бути порожньою.',
@@ -277,6 +280,69 @@ class PanelView {
 	}
 }
 
+// The app's own confirmation dialog. ask() resolves to true (confirm) or false (cancel, Escape, backdrop).
+class ConfirmDialog {
+	constructor(){
+		this.backdropElement = document.querySelector('.dialog-backdrop');
+		this.boxElement = this.backdropElement.querySelector('[role="alertdialog"]');
+		this.titleElement = this.backdropElement.querySelector('.dialog-title');
+		this.messageElement = this.backdropElement.querySelector('.dialog-message');
+		this.cancelElement = this.backdropElement.querySelector('.dialog-cancel');
+		this.confirmElement = this.backdropElement.querySelector('.dialog-confirm');
+
+		this.resolve = null;
+		this.returnFocusTo = null;
+
+		this.cancelElement.addEventListener('click', () => this.#close(false));
+		this.confirmElement.addEventListener('click', () => this.#close(true));
+		this.backdropElement.addEventListener('click', event => {
+			if(event.target === this.backdropElement) this.#close(false);
+		});
+		this.boxElement.addEventListener('keydown', event => this.#onKeydown(event));
+	}
+
+	ask({ title, message, confirmText = UI_TEXT.delete, cancelText = UI_TEXT.cancel }){
+		this.returnFocusTo = document.activeElement;
+		this.titleElement.textContent = title;
+		this.messageElement.textContent = message;
+		this.confirmElement.textContent = confirmText;
+		this.cancelElement.textContent = cancelText;
+		this.backdropElement.classList.remove('hidden');
+
+		// The safe choice has the focus: Enter cancels.
+		this.cancelElement.focus();
+		return new Promise(resolve => { this.resolve = resolve; });
+	}
+
+	#close(answer){
+		this.backdropElement.classList.add('hidden');
+		if(this.returnFocusTo) this.returnFocusTo.focus();
+		this.returnFocusTo = null;
+
+		const resolve = this.resolve;
+		this.resolve = null;
+		resolve(answer);
+	}
+
+	// Escape cancels; Tab moves between the two buttons only, so the focus stays in the dialog.
+	#onKeydown(event){
+		if(event.key === 'Escape'){
+			event.preventDefault();
+			this.#close(false);
+			return;
+		}
+		if(event.key === 'Tab'){
+			const buttons = [this.cancelElement, this.confirmElement];
+			const index = buttons.indexOf(document.activeElement);
+			let next;
+			if(event.shiftKey) next = index <= 0 ? buttons.length - 1 : index - 1;
+			else next = index === buttons.length - 1 ? 0 : index + 1;
+			event.preventDefault();
+			buttons[next].focus();
+		}
+	}
+}
+
 class FrameView {
 	constructor(element){
 		this.element = element;
@@ -384,6 +450,7 @@ class CardEditorView extends FrameView {
 		});
 
 		this.onSaveClickHandler = (async (card) => {});
+		this.deleteTextHandler = (async () => true);
 		this.saveButtonElement.addEventListener('click', async event => {
 			const cardName = this.cardNameElement.innerText;
 			const textObjList = Array.from(this.textListElement.querySelectorAll('.editor'))
@@ -445,11 +512,16 @@ class CardEditorView extends FrameView {
 		return textEditorElem;
 	}
 
+	onDeleteTextClick(callback){
+		this.deleteTextHandler = callback;
+	}
+
 	#addEventHandlers(textEditorElem){
 		textEditorElem.querySelector('.action-delete-text')
-			.addEventListener('click', event => {
-				if(!confirm(UI_TEXT.confirmDeleteText)) return;
-				event.target.closest('.editor').remove();
+			.addEventListener('click', async event => {
+				const editorElem = event.target.closest('.editor');
+				if(!await this.deleteTextHandler()) return;
+				editorElem.remove();
 			});
 	}
 
@@ -464,7 +536,7 @@ class CardEditorView extends FrameView {
 		this.cardNameElement.innerText = card.name;
 		const textEditorElems = card.texts.map(textObj => this.#newTextElement(textObj));
 		this.textListElement.replaceChildren(...textEditorElems);
-		textEditorElems.forEach(this.#addEventHandlers);
+		textEditorElems.forEach(elem => this.#addEventHandlers(elem));
 	}
 }
 
@@ -733,6 +805,11 @@ class CardEditorController {
 		this.app = app;
 		this.view = new CardEditorView();
 
+		this.view.onDeleteTextClick(() => this.app.confirm.ask({
+			title: UI_TEXT.textDeleteTitle,
+			message: UI_TEXT.textDeleteMessage,
+		}));
+
 		this.view.onSaveButtonClick(async (card) => {
 			const problem = this.#validate(card);
 			this.view.showMessage(problem ?? '');
@@ -754,7 +831,11 @@ class CardEditorController {
 		this.app.pannel.setTitle(UI_TEXT.editorTitle);
 		this.app.pannel.activeLeftButton(UI_TEXT.back, async () => await this.app.toMenu());
 		this.app.pannel.activeRightButton(UI_TEXT.delete, async () => {
-			if(!confirm(UI_TEXT.confirmDeleteCard)) return;
+			const confirmed = await this.app.confirm.ask({
+				title: UI_TEXT.cardDeleteTitle,
+				message: UI_TEXT.cardDeleteMessage,
+			});
+			if(!confirmed) return;
 			await this.app.model.deleteCard(this.view.getCurrentCardId());
 			await this.app.toMenu();
 		});
@@ -841,6 +922,7 @@ class App {
 	constructor(){
 		this.model = new TrainerModel();
 		this.pannel = new PanelView();
+		this.confirm = new ConfirmDialog();
 
 		this.menu = new MenuController(this);
 		this.cardEditor = new CardEditorController(this);
