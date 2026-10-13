@@ -1,5 +1,65 @@
 /* ==========================================================================
-	1. RESET STYLES & PAGE STRUCTURE
+	1. DESIGN TOKENS
+	Every value in the interface comes from these scales.
+	========================================================================== */
+:root {
+	/* Greys: 10 shades, from the page background to the darkest text */
+	--grey-50: hsl(215 30% 98%);
+	--grey-100: hsl(215 25% 95%);
+	--grey-200: hsl(215 20% 90%);
+	--grey-300: hsl(215 16% 80%);
+	--grey-400: hsl(215 13% 64%);
+	--grey-500: hsl(215 12% 48%);
+	--grey-600: hsl(215 16% 38%);
+	--grey-700: hsl(215 20% 28%);
+	--grey-800: hsl(215 25% 18%);
+	--grey-900: hsl(215 30% 12%);
+
+	/* Primary: indigo */
+	--primary-50: hsl(232 80% 97%);
+	--primary-100: hsl(232 80% 94%);
+	--primary-300: hsl(232 80% 80%);
+	--primary-400: hsl(232 80% 70%);
+	--primary-500: hsl(232 75% 58%);
+	--primary-600: hsl(232 70% 50%);
+	--primary-700: hsl(232 70% 42%);
+
+	/* Danger: errors and the red pen */
+	--danger-50: hsl(0 85% 97%);
+	--danger-100: hsl(0 85% 94%);
+	--danger-500: hsl(0 72% 51%);
+	--danger-600: hsl(0 72% 45%);
+	--danger-700: hsl(0 70% 38%);
+
+	--white: #ffffff;
+
+	/* Spacing scale */
+	--space-1: 4px;
+	--space-2: 8px;
+	--space-3: 12px;
+	--space-4: 16px;
+	--space-6: 24px;
+	--space-8: 32px;
+
+	/* Type scale */
+	--text-sm: 14px;
+	--text-md: 16px;
+	--text-lg: 18px;
+	--text-xl: 20px;
+	--text-2xl: 24px;
+
+	/* One radius for everything */
+	--radius: 12px;
+
+	/* Elevation: two levels */
+	--shadow-1: 0 1px 3px hsla(0, 0%, 0%, 0.12), 0 1px 2px hsla(0, 0%, 0%, 0.08);
+	--shadow-2: 0 4px 6px -1px hsla(0, 0%, 0%, 0.1), 0 2px 4px -1px hsla(0, 0%, 0%, 0.06);
+
+	--focus-ring: 0 0 0 3px var(--primary-100);
+}
+
+/* ==========================================================================
+	2. BASE
 	========================================================================== */
 * {
 	box-sizing: border-box;
@@ -9,68 +69,134 @@
 
 body {
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-	background-color: #f8fafc;
-	color: #0f172a;
-	padding: 20px;
+	font-size: var(--text-md);
+	line-height: 1.5;
+	color: var(--grey-800);
+	background-color: var(--grey-100);
+
 	display: flex;
 	flex-direction: column;
-	gap: 24px;
 	align-items: center;
+	gap: var(--space-4);
+	padding: var(--space-4);
 
 	min-height: -webkit-fill-available;
 	height: 100dvh;
-
-	overflow: hidden; /* Prevent global page scrolling */
+	overflow: hidden; /* the app is one screen; long content scrolls inside its frame */
 }
 
 pre {
-	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+	font-family: inherit;
 }
 
 .hidden {
 	display: none !important;
 }
 
+:focus-visible {
+	outline: 2px solid var(--primary-500);
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	* {
+		transition: none !important;
+	}
+}
+
 /* ==========================================================================
-	2. PAGE HEADER
+	3. BUTTONS: primary (solid), secondary (outline), tertiary (link)
+	One primary action per screen where possible. Every button is at least 44 px.
+	========================================================================== */
+button {
+	font-family: inherit;
+	font-size: var(--text-md);
+	font-weight: 600;
+	line-height: 1;
+	min-width: 44px;
+	min-height: 44px;
+	padding: var(--space-3) var(--space-4);
+	border: 1px solid transparent;
+	border-radius: var(--radius);
+	cursor: pointer;
+	transition: background-color 150ms, border-color 150ms, color 150ms, transform 100ms;
+}
+
+button:active {
+	transform: scale(0.98);
+}
+
+/* Primary: solid */
+.action-next-text,
+.action-add-text,
+.action-save {
+	background-color: var(--primary-600);
+	color: var(--white);
+	box-shadow: var(--shadow-1);
+}
+
+.action-next-text:hover,
+.action-add-text:hover,
+.action-save:hover {
+	background-color: var(--primary-700);
+}
+
+/* Secondary: white with a border */
+.action-back-text,
+.action-add,
+.action-edit-text {
+	background-color: var(--white);
+	border-color: var(--grey-300);
+	color: var(--grey-800);
+}
+
+.action-back-text:hover,
+.action-add:hover,
+.action-edit-text:hover {
+	background-color: var(--grey-100);
+}
+
+/* Tertiary destructive: link style, red */
+.action-delete-text {
+	background-color: transparent;
+	color: var(--danger-600);
+	padding-left: var(--space-2);
+	padding-right: var(--space-2);
+}
+
+.action-delete-text:hover {
+	background-color: var(--danger-50);
+}
+
+/* ==========================================================================
+	4. HEADER
 	========================================================================== */
 header {
 	width: 100%;
-	max-width: 1000px;
-	/* Left and right side get equal columns, so the title stays centred
-	   and a long button label cannot push the header out of its padding */
+	max-width: 640px;
+	flex-shrink: 0; /* the header never shrinks */
+
+	/* Left and right slots are equal, so the title stays centred and a long label cannot push it */
 	display: grid;
 	grid-template-columns: 1fr auto 1fr;
 	align-items: center;
-	padding: 16px 24px;
-	background-color: #ffffff;
-	border-radius: 12px;
-	border: 1px solid #e2e8f0;
-	box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
-	flex-shrink: 0; /* Header never shrinks */
-}
+	gap: var(--space-2);
+	padding: var(--space-2) var(--space-4);
 
-/* "Back" button in the header (link-style with no background) */
-.wrapper-left button, .wrapper-right button {
-	background: none !important;
-	border: none !important;
-	padding: 0 !important;
-	color: #0284c7;
-	font-weight: 500;
-	font-size: 1rem;
-	cursor: pointer;
-	transition: color 0.2s;
-}
-
-.wrapper-left button:hover {
-	color: #0369a1;
+	background-color: var(--white);
+	border: 1px solid var(--grey-200);
+	border-radius: var(--radius);
+	box-shadow: var(--shadow-1);
 }
 
 header h2 {
-	font-size: 1.25rem;
+	font-size: var(--text-lg);
 	font-weight: 600;
-	color: #1e293b;
+	color: var(--grey-900);
 	text-align: center;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .wrapper-left {
@@ -81,311 +207,380 @@ header h2 {
 	justify-self: end;
 }
 
+/* Header buttons are links: no box, no border */
+header button {
+	background-color: transparent;
+	border-color: transparent;
+	box-shadow: none;
+	padding-left: var(--space-2);
+	padding-right: var(--space-2);
+}
+
+header button:hover {
+	background-color: var(--grey-100);
+}
+
+button.left {
+	color: var(--primary-600);
+}
+
+button.right {
+	color: var(--danger-600);
+}
+
 /* ==========================================================================
-	3. PANEL ARCHITECTURE (SPA LOGIC)
+	5. FRAMES (the three screens)
 	========================================================================== */
 .frame-wrapper {
 	width: 100%;
-	max-width: 1000px;
-	flex-grow: 1; 
+	max-width: 640px;
+	flex-grow: 1;
 	min-height: 0;
-	display: none; /* Hide all panels by default */
+	display: none;
 }
 
 .frame-wrapper.active {
-	display: flex; 
-	flex-direction: column;
-}
-
-.frame {
-	background-color: #ffffff;
-	border-radius: 16px;
-	padding: 24px;
-	border: 1px solid #e2e8f0;
-	box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-	height: 100%;
 	display: flex;
 	flex-direction: column;
 }
 
-/* Specific container for the card editing screen */
-.frame.edit-card {
-	gap: 20px;
+.frame {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-4);
+	padding: var(--space-4);
+
+	background-color: var(--white);
+	border: 1px solid var(--grey-200);
+	border-radius: var(--radius);
+	box-shadow: var(--shadow-1);
 }
 
-/* Card name heading inside the edit screen */
-.frame.edit-card > h2 {
-	font-size: 1.4rem;
+/* Controls at the bottom of a frame */
+.controls {
+	flex-shrink: 0;
+	display: flex;
+	gap: var(--space-3);
+	justify-content: flex-end;
+}
+
+/* ==========================================================================
+	6. MENU: cards and the empty state
+	========================================================================== */
+.frame.menu > .controls {
+	justify-content: stretch;
+}
+
+.frame.menu > .controls button {
+	flex: 1;
+}
+
+.card-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+	flex-grow: 1;
+	min-height: 0;
+	overflow-y: auto;
+}
+
+.card {
+	flex-shrink: 0;
+	min-height: 64px;
+	display: flex;
+	flex-wrap: wrap; /* on narrow screens the Edit button goes to its own line */
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+	padding: var(--space-3) var(--space-4);
+
+	background-color: var(--grey-50);
+	border: 1px solid var(--grey-200);
+	border-radius: var(--radius);
+	cursor: pointer;
+	transition: background-color 150ms, border-color 150ms;
+}
+
+.card:hover {
+	background-color: var(--grey-100);
+	border-color: var(--grey-300);
+}
+
+.card-info {
+	flex: 1 1 160px; /* the name gets at least 160 px before the button wraps */
+	min-width: 0; /* lets the name shrink with an ellipsis instead of running under the button */
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+}
+
+.card h3 {
+	font-size: var(--text-md);
 	font-weight: 600;
-	color: #0f172a;
-	padding-bottom: 12px;
-	border-bottom: 2px solid #f1f5f9;
-	flex-shrink: 0; /* Header stays fixed at the top, never shrinks */
-	margin: 0;
+	color: var(--grey-800);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.card-meta {
+	font-size: var(--text-sm);
+	color: var(--grey-600);
+}
+
+.card .controls {
+	flex-shrink: 0;
+	margin-left: auto;
+}
+
+.empty-state {
+	margin: auto;
+	max-width: 32ch;
+	padding: var(--space-8) var(--space-4);
+	text-align: center;
+	color: var(--grey-600);
+}
+
+/* ==========================================================================
+	7. EDITOR: card name, texts, add and save
+	========================================================================== */
+.frame.edit-card {
+	gap: var(--space-6);
+}
+
+.card-name {
+	flex-shrink: 0;
+	font-size: var(--text-2xl);
+	font-weight: 600;
+	line-height: 1.25;
+	color: var(--grey-900);
+	padding-bottom: var(--space-3);
+	border-bottom: 2px solid var(--grey-200);
 	outline: none;
 }
 
+.card-name:focus {
+	border-bottom-color: var(--primary-400);
+}
 
-/* Validation message on the card editor screen (empty when there is nothing to say) */
-.form-message {
-	color: #dc2626;
-	font-size: 0.95rem;
-	font-weight: 500;
+.text-list {
+	flex-grow: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-6);
+	overflow-y: auto;
+}
+
+.editor {
 	flex-shrink: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+}
+
+.editor .title {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+	flex-shrink: 0;
+}
+
+.editor .title h3 {
+	font-size: var(--text-md);
+	font-weight: 600;
+	color: var(--grey-700);
+	outline: none;
+}
+
+.editor .title h3:focus {
+	color: var(--primary-700);
+}
+
+.form-message {
+	flex-shrink: 0;
+	padding: var(--space-3) var(--space-4);
+	font-size: var(--text-sm);
+	font-weight: 500;
+	color: var(--danger-700);
+	background-color: var(--danger-50);
+	border: 1px solid var(--danger-100);
+	border-radius: var(--radius);
 }
 
 .form-message:empty {
 	display: none;
 }
 
-/* Scroll container for multiple editors */
-.text-list {
-	display: flex;
-	flex-direction: column;
-	gap: 24px;
-	flex-grow: 1;
-	overflow-y: auto; /* Independent vertical scroll for cards */
-	padding-right: 4px;
+.frame.edit-card > .controls {
+	justify-content: stretch;
+}
+
+.frame.edit-card > .controls button {
+	flex: 1;
 }
 
 /* ==========================================================================
-	4. EDITOR COMPONENT & TEXT AREA
+	8. TEXT BOX: shown text, typing, red pen, hint
 	========================================================================== */
-.editor {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-	flex-shrink: 0; /* Cards in the list do not shrink */
-}
-
-/* If the editor is the only element on the screen (first frame) */
-.frame > .editor {
-	height: 100%;
-}
-
-/* Title + Delete button on the same level */
-.editor .title {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	flex-shrink: 0;
-}
-
-.editor .title h3 {
-	font-size: 1.1rem;
-	color: #64748b;
-	outline: none;
-}
-
-/* Text working area (contenteditable) */
 .editor .text {
-	background-color: #ffffff;
-	padding: 16px;
-	border-radius: 8px;
-	border: 1px solid #e2e8f0;
-	line-height: 1.8; /* Increased line-height for better <ruby> positioning */
-	color: #334155;
-	outline: none;
-
-	white-space: pre-wrap;
-	word-break: break-word;
-	overflow-wrap: break-word;
-	
-	/* Height restriction for fields inside the list */
-	max-height: 200px;
-	overflow-y: auto;
-}
-
-.editor [contenteditable].text {
-	background-color: #f1f5f9;
-}
-
-/* If the field is the only one on the screen, allow it to take maximum space */
-.frame > .editor .text {
 	flex-grow: 1;
-	max-height: none;
+	min-height: 120px;
+	padding: var(--space-4);
+	font-size: var(--text-lg);
+	line-height: 1.7;
+	color: var(--grey-800);
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+	overflow-y: auto;
+
+	background-color: var(--white);
+	border: 1px solid var(--grey-200);
+	border-radius: var(--radius);
+	outline: none;
 }
 
-/* Keep visual stability during text input (no blue borders/outlines) */
-.editor .text:focus {
-	outline: none;
-	background-color: #f1f5f9;
-	border-color: #e2e8f0;
+/* Typing: a clear focus state with the primary colour */
+.editor .text[contenteditable] {
+	background-color: var(--grey-50);
+	border-color: var(--primary-400);
+	box-shadow: var(--focus-ring);
+}
+
+/* Placeholder while the field is empty and editable */
+.editor .text[contenteditable]:empty::before {
+	content: attr(data-placeholder);
+	color: var(--grey-500);
+	pointer-events: none;
+}
+
+/* Editor bodies: always editable, so they carry a quiet grey box; the primary focus ring marks the one being edited */
+.frame.edit-card .text,
+.frame.edit-card .text[contenteditable] {
+	flex-grow: 0;
+	min-height: 120px;
+	font-size: var(--text-md);
+	line-height: 1.6;
+	background-color: var(--grey-50);
+	border-color: var(--grey-200);
 	box-shadow: none;
 }
 
-/* ==========================================================================
-	5. TYPED TEXT STATES
-	========================================================================== */
+.frame.edit-card .text:focus {
+	border-color: var(--primary-400);
+	box-shadow: var(--focus-ring);
+}
+
+/* Wrong token typed in Memory check: red text, typing is blocked until Backspace */
+.editor .text .wrong {
+	color: var(--danger-600);
+	font-weight: 600;
+}
 
 /* Wrong space typed where the text has none: the space is empty, so the background is red */
 .editor .text .wrong-space {
 	display: inline-block;
 	min-width: 0.5em;
-	background-color: #ef4444;
-}
-
-/* Wrong token typed in Memory check: red text, typing is blocked until Backspace */
-.editor .text .wrong {
-	color: #dc2626;
-	font-weight: 600;
+	background-color: var(--danger-500);
 }
 
 /* Hint after several wrong attempts: the expected token, grey, right of the caret.
    Drawn with ::after, so it is not part of the text. */
 .editor .text .hint::after {
 	content: attr(data-hint);
-	color: #94a3b8;
+	color: var(--grey-500);
 	user-select: none;
 }
 
 /* ==========================================================================
-	6. BUTTONS & CONTROLS
+	9. MEMORY CHECK: title row, progress, navigation
 	========================================================================== */
-.controls {
-	flex-shrink: 0;
-	display: flex;
-	gap: 12px;
-	justify-content: flex-end;
-}
-
-/* Global settings for absolutely all buttons */
-button {
-	font-family: inherit;
-	color: white;
-	border: none;
-	border-radius: 8px;
-	font-weight: 600;
-	cursor: pointer;
-	transition: background-color 0.2s, transform 0.1s;
-}
-
-button:active {
-	transform: scale(0.98);
-}
-
-/* Large standard buttons in action panels (e.g., Ok) */
-.controls button {
-	padding: 12px 24px;
-	background-color: #2563eb;
-}
-
-.controls button:hover {
-	background-color: #1d4ed8;
-}
-
-/* Button styling based on unique classes */
-.action-add-text {
-	background-color: #10b981 !important; /* Green for Add */
-}
-
-.action-add-text:hover {
-	background-color: #059669 !important;
-}
-
-.action-save-text {
-	background-color: #2563eb !important; /* Blue for Save */
-}
-
-.action-save-text:hover {
-	background-color: #1d4ed8 !important;
-}
-
-/* Compact red Delete button inside .title */
-.editor .title button {
-	padding: 6px 14px;
-	font-size: 0.85rem;
-	background-color: #ef4444;
-}
-
-.editor .title button:hover {
-	background-color: #dc2626;
-}
-
-/* ==========================================================================
-	7. NAVIGATION CARDS & MENU
-	========================================================================== */
-/* The main menu frame container */
-.frame.menu {
-	gap: 20px;
-}
-
-/* Scroll container for multiple cards */
-.card-list {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
+.trainer .editor {
 	flex-grow: 1;
-	overflow-y: auto; /* Independent vertical scroll for the cards list */
-	padding-right: 4px;
+	min-height: 0;
+	height: 100%;
 }
 
-/* Individual navigation card */
-.card {
-	background-color: #f8fafc;
-	padding: 14px 20px;
-	border-radius: 10px;
-	border: 1px solid #e2e8f0;
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	transition: background-color 0.2s, transform 0.2s, border-color 0.2s;
-	cursor: pointer;
-	flex-shrink: 0; /* Cards do not shrink when the list grows */
-}
-
-.card:hover {
-	background-color: #f1f5f9;
-	border-color: #cbd5e1;
-	transform: translateY(-1px);
-}
-
-.card h3 {
-	font-size: 1rem;
-	font-weight: 500;
-	color: #334155;
-}
-
-/* Name and text count on a card in the menu */
-.card-info {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
+.trainer .title h3 {
+	font-size: var(--text-xl);
+	font-weight: 600;
+	color: var(--grey-800);
 	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
-.card-meta {
-	font-size: 0.8rem;
-	color: #64748b;
-}
-
-/* Position of the current text in Memory check, on the right of the title */
+/* Position of the current text: "1 з 3" */
 .progress {
-	font-size: 0.9rem;
-	color: #64748b;
+	flex-shrink: 0;
+	padding: var(--space-1) var(--space-2);
+	font-size: var(--text-sm);
+	font-weight: 500;
+	color: var(--grey-600);
+	background-color: var(--grey-100);
+	border-radius: var(--radius);
 	font-variant-numeric: tabular-nums;
 }
 
-/* Compact Edit button inside individual card controls */
-.card .controls button.action-edit-text {
-	padding: 6px 14px;
-	font-size: 0.85rem;
-	background-color: #64748b; /* Neutral slate color for edit action */
-}
-
-.card .controls button.action-edit-text:hover {
-	background-color: #475569;
-}
-
+/* Two equal buttons on every size: Back (secondary), Next (primary) */
 .trainer .controls {
-	justify-content: space-evenly;
-	flex-wrap: wrap;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--space-3);
+	flex-shrink: 0;
 }
 
-/* On phones the four Memory check buttons form an even 2 × 2 grid */
-@media (max-width: 600px) {
+/* ==========================================================================
+	10. LARGER SCREENS
+	Mobile first: the rules above are for phones. From 600 px the frames get more room;
+	from 900 px they stop growing and stay centred.
+	========================================================================== */
+@media (min-width: 600px) {
+	body {
+		padding: var(--space-6);
+		gap: var(--space-6);
+	}
+
+	header {
+		padding: var(--space-3) var(--space-6);
+	}
+
+	header h2 {
+		font-size: var(--text-xl);
+	}
+
+	.frame {
+		padding: var(--space-6);
+	}
+
+	.editor .text {
+		padding: var(--space-6);
+		font-size: var(--text-xl);
+		min-height: 200px;
+	}
+
+	.frame.edit-card .text {
+		font-size: var(--text-lg);
+	}
+
+	.frame.menu > .controls button,
+	.frame.edit-card > .controls button {
+		flex: 0 0 auto;
+	}
+
 	.trainer .controls {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
+		max-width: 360px;
+		width: 100%;
+		margin: 0 auto;
+	}
+}
+
+@media (min-width: 900px) {
+	header,
+	.frame-wrapper {
+		max-width: 720px;
 	}
 }

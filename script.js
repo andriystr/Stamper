@@ -84,6 +84,7 @@ const UI_TEXT = {
 	nameRequired: 'Назва картки не може бути порожньою.',
 	textRequired: 'Додайте хоча б один текст, перш ніж зберегти картку.',
 	noTextsInCard: 'У цій картці немає текстів. Відкрийте редактор і додайте текст.',
+	noCards: 'Ще немає карток. Натисніть «Додати», щоб створити першу.',
 };
 
 // -------------------------------- End Texts --------------------------------
@@ -312,6 +313,14 @@ class MenuView extends FrameView {
 	}
 
 	renderCards(cards){
+		if(cards.length === 0){
+			const emptyElem = document.createElement('p');
+			emptyElem.classList.add('empty-state');
+			emptyElem.textContent = UI_TEXT.noCards;
+			this.cardListElement.replaceChildren(emptyElem);
+			return;
+		}
+
 		const newElements = cards.map(card => {
 			const cardElem = document.createElement('div');
 			cardElem.classList.add('card');

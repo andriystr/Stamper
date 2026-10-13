@@ -2,7 +2,6 @@
 // and the Memory check buttons form an even grid on phones.
 const { test, expect } = require('@playwright/test');
 
-const HEADER_PADDING = 24;
 const TOLERANCE = 2;
 
 const activeMenu = page => page.locator('.frame-wrapper.active .frame.menu');
@@ -43,6 +42,8 @@ for (const [name, viewport] of Object.entries(VIEWPORTS)) {
 			const header = await page.locator('header').boundingBox();
 			const right = await page.locator('header .right').boundingBox();
 			const left = await page.locator('header .left').boundingBox();
+			// The padding comes from the design, so read it from the page instead of hard-coding it.
+			const HEADER_PADDING = await page.locator('header').evaluate(el => parseFloat(getComputedStyle(el).paddingLeft));
 
 			expect(right.x + right.width, 'right button runs past the header padding')
 				.toBeLessThanOrEqual(header.x + header.width - HEADER_PADDING + TOLERANCE);
