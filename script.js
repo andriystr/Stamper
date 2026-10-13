@@ -150,6 +150,45 @@ function detectReplacements(groupedDiff, maxLengthDiff = 10) {
 	return result;
 }
 
+// Apostrophe and dash variants are compared as one character each (same length, so positions match).
+const APOSTROPHE_VARIANTS = /[’‘‛ʼ`´՚᾽᾿]/g;
+const DASH_VARIANTS = /[–—]/g;
+
+function canonical(text) {
+	return text.replace(APOSTROPHE_VARIANTS, "'").replace(DASH_VARIANTS, '-');
+}
+
+// A token is a word (letters and digits, joined by an apostrophe or a dash),
+// or one other visible character. Whitespace only separates tokens.
+const TOKEN_PATTERN = /[\p{L}\p{N}]+(?:['-]+[\p{L}\p{N}]+)*['-]*|[^\s\p{L}\p{N}]/gu;
+
+function tokenize(text) {
+	return [...canonical(text).matchAll(TOKEN_PATTERN)].map(match => ({
+		text: match[0],
+		start: match.index,
+		end: match.index + match[0].length,
+	}));
+}
+
+// Checks the finished tokens of `typed` against the expected tokens, in order.
+// A token is finished when another token follows it, or when the text ends with whitespace.
+function checkTyped(expectedTokens, typed) {
+	const actual = tokenize(typed);
+	const finished = /\s$/.test(typed) ? actual.length : actual.length - 1;
+
+	for (let i = 0; i < finished; i++) {
+		const expected = expectedTokens[i];
+		if (!expected || expected.text !== actual[i].text) {
+			return {
+				ok: false,
+				prefix: typed.slice(0, actual[i].start),
+				wrong: typed.slice(actual[i].start, actual[i].end),
+			};
+		}
+	}
+	return { ok: true };
+}
+
 // -------------------------------- End Utils --------------------------------
 
 // ================================== Texts ==================================
@@ -316,12 +355,8 @@ class TrainerModel {
 	}
 
 	getDifference(original, userInput){
-		const origin = original.replaceAll(/\s+/g, ' ')
-			.replace(/[’‘‛ʼ`´՚᾽᾿’]/g, "'")
-			.replace(/ — /g, ' - ');
-		const input = userInput.replaceAll(/\s+/g, ' ')
-			.replace(/[’‘‛ʼ`´՚᾽᾿’]/g, "'")
-			.replace(/ — /g, ' - ');
+		const origin = canonical(original.replaceAll(/\s+/g, ' '));
+		const input = canonical(userInput.replaceAll(/\s+/g, ' '));
 
 		const diffList = diffText(origin, input);
 		const groupedDiff = groupDiff(diffList);
@@ -569,6 +604,15 @@ class MemoryCheckView extends FrameView {
 		this.nextTextElement = this.element.querySelector('.action-next-text');
 		this.progressElement = this.element.querySelector('.progress');
 
+		this.blocked = null;
+		this.expectedTokens = [];
+
+		this.textElement.addEventListener('beforeinput', event => this.#onBeforeInput(event));
+		this.textElement.addEventListener('input', event => {
+			if(!event.isComposing) this.#validateTyped();
+		});
+		this.textElement.addEventListener('compositionend', () => this.#validateTyped());
+
 		this.textElement.addEventListener('keydown', event => {
 			if(event.key === 'Enter' && (event.ctrlKey || event.metaKey) && !this.checkTextElement.classList.contains('hidden')){
 				event.preventDefault();
@@ -590,6 +634,7 @@ class MemoryCheckView extends FrameView {
 			await this.backButtonClickHandler();
 		});
 		this.checkTextElement.addEventListener('click', async event => {
+			if(this.blocked) return;
 			await this.checkButtonClickHandler();
 		});
 		this.againTextElement.addEventListener('click', async event => {
@@ -634,12 +679,90 @@ class MemoryCheckView extends FrameView {
 		this.textElement.setAttribute('contenteditable', true);
 	}
 
+	// While a wrong token is shown, typing is blocked; only Backspace works and removes the whole token.
+	// Outside that state, the caret must be at the end: the check only looks at the end of the text.
+	#onBeforeInput(event){
+		if(event.isComposing) return;
+
+		if(this.blocked){
+			event.preventDefault();
+			if(event.inputType.startsWith('delete')) this.#unblock();
+			return;
+		}
+		if(!this.#caretAtEnd()){
+			event.preventDefault();
+			this.#placeCaretAtEnd();
+		}
+	}
+
+	// Runs after every change the browser made to the text; the browser may have typed a whole word (phones, paste).
+	#validateTyped(){
+		if(this.state !== 'text' || !this.textElement.hasAttribute('contenteditable')) return;
+
+		if(this.blocked){
+			this.#renderBlocked();
+			return;
+		}
+
+		const result = checkTyped(this.expectedTokens, this.textElement.innerText);
+		if(result.ok) return;
+
+		this.blocked = { prefix: result.prefix, wrong: result.wrong };
+		this.#renderBlocked();
+		this.#vibrate();
+	}
+
+	#renderBlocked(){
+		const wrongElem = document.createElement('span');
+		wrongElem.classList.add('wrong');
+		wrongElem.textContent = this.blocked.wrong;
+
+		this.textElement.replaceChildren(document.createTextNode(this.blocked.prefix), wrongElem);
+		this.#placeCaretAtEnd();
+	}
+
+	#unblock(){
+		const prefix = this.blocked.prefix;
+		this.blocked = null;
+		this.textElement.textContent = prefix;
+		this.#placeCaretAtEnd();
+	}
+
+	#caretAtEnd(){
+		const selection = getSelection();
+		if(!selection.rangeCount) return false;
+
+		const range = selection.getRangeAt(0);
+		if(!this.textElement.contains(range.endContainer)) return false;
+
+		const beforeCaret = document.createRange();
+		beforeCaret.selectNodeContents(this.textElement);
+		beforeCaret.setEnd(range.endContainer, range.endOffset);
+		return beforeCaret.toString().length === this.textElement.textContent.length;
+	}
+
+	#placeCaretAtEnd(){
+		const range = document.createRange();
+		range.selectNodeContents(this.textElement);
+		range.collapse(false);
+
+		const selection = getSelection();
+		selection.removeAllRanges();
+		selection.addRange(range);
+	}
+
+	#vibrate(){
+		if(typeof navigator.vibrate === 'function') navigator.vibrate(200);
+	}
+
 	#deactiveEditor(){
 		this.textElement.removeAttribute('contenteditable');
 	}
 
 	renderText(text){
 		this.state = 'text';
+		this.expectedTokens = tokenize(text);
+		this.blocked = null;
 		this.#deactiveEditor();
 		this.backTextElement.classList.remove('hidden');
 		this.nextTextElement.classList.remove('hidden');
@@ -650,6 +773,7 @@ class MemoryCheckView extends FrameView {
 
 	renderEmpty(message){
 		this.state = 'empty';
+		this.blocked = null;
 		this.#deactiveEditor();
 		this.backTextElement.classList.add('hidden');
 		this.nextTextElement.classList.add('hidden');

@@ -230,6 +230,12 @@ header h2 {
 	text-decoration: underline solid red;
 }
 
+/* Wrong token typed in Memory check: red text, typing is blocked until Backspace */
+.editor .text .wrong {
+	color: #dc2626;
+	font-weight: 600;
+}
+
 /* Inserted text / teacher's notes: completely RED */
 .editor .text ins {
 	color: #dc2626;
